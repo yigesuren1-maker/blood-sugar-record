@@ -17,11 +17,10 @@
       color-scheme: light;
       --bg: #fffdf2;
       --text: #101010;
-      --muted: #444444;
+      --muted: #464646;
       --green: #0b6b3a;
       --green-dark: #084e2b;
-      --yellow: #fff2a8;
-      --line: #c9c9c9;
+      --line: #cfcfcf;
       --red: #c51616;
       --blue: #075fc0;
       --white: #ffffff;
@@ -38,18 +37,14 @@
       background: var(--bg);
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      font-size: 28px;
-      line-height: 1.4;
+      -webkit-text-size-adjust: 100%;
     }
 
     body {
       padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
-      -webkit-text-size-adjust: 100%;
     }
 
-    button,
-    input,
-    select {
+    button {
       font: inherit;
     }
 
@@ -57,202 +52,91 @@
       width: min(100%, 760px);
       min-height: 100vh;
       margin: 0 auto;
-      padding: 18px 16px 28px;
+      padding: 18px 16px 26px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
-    }
-
-    header {
-      text-align: center;
-    }
-
-    h1 {
-      margin: 0;
-      color: var(--green-dark);
-      font-size: clamp(42px, 13vw, 68px);
-      line-height: 1.05;
-      font-weight: 900;
-      letter-spacing: 0;
-    }
-
-    h2 {
-      margin: 0;
-      color: var(--green-dark);
-      font-size: clamp(36px, 10vw, 56px);
-      line-height: 1.12;
-      font-weight: 900;
     }
 
     .screen {
       display: none;
       flex: 1;
       flex-direction: column;
-      gap: 18px;
     }
 
     .screen.active {
       display: flex;
     }
 
-    .big-text {
-      font-size: clamp(28px, 8vw, 44px);
-      font-weight: 900;
-      line-height: 1.25;
+    .home {
+      justify-content: center;
+      padding-bottom: 78px;
     }
 
-    .install-tip,
-    .panel,
-    .day {
-      background: var(--white);
-      border: 4px solid var(--line);
-      border-radius: 8px;
-      padding: 18px;
-    }
-
-    .install-tip {
-      background: var(--yellow);
-      border-color: #877400;
-      color: #332900;
-    }
-
-    .install-tip p,
-    .panel p {
-      margin: 0;
-    }
-
-    .status {
-      min-height: 48px;
-      text-align: center;
-      color: var(--green-dark);
-      font-size: clamp(28px, 8vw, 44px);
-      font-weight: 900;
-    }
-
-    .status.error {
-      color: var(--red);
-    }
-
-    .form-error {
-      min-height: 44px;
-      color: var(--red);
-      text-align: center;
-      font-size: clamp(28px, 8vw, 44px);
-      font-weight: 900;
-    }
-
-    .actions {
-      display: grid;
-      gap: 18px;
-      margin-top: auto;
-    }
-
-    .big-button {
+    .main-button {
       width: 100%;
-      min-height: 104px;
+      min-height: 78vh;
       border: 0;
-      border-radius: 8px;
-      padding: 20px 16px;
-      color: var(--white);
+      border-radius: 10px;
+      padding: 28px 20px;
       background: var(--green);
-      box-shadow: 0 6px 0 var(--green-dark);
-      font-size: clamp(32px, 9vw, 56px);
-      line-height: 1.18;
+      color: var(--white);
+      box-shadow: 0 9px 0 var(--green-dark);
+      font-size: clamp(48px, 16vw, 88px);
+      line-height: 1.16;
       font-weight: 900;
+      letter-spacing: 0;
       touch-action: manipulation;
     }
 
-    .big-button:active {
-      transform: translateY(4px);
-      box-shadow: 0 2px 0 var(--green-dark);
+    .main-button:active {
+      transform: translateY(5px);
+      box-shadow: 0 4px 0 var(--green-dark);
     }
 
-    .big-button.secondary {
-      color: var(--green-dark);
-      background: var(--white);
-      border: 4px solid var(--green);
-      box-shadow: none;
-    }
-
-    .big-button.red {
-      background: var(--red);
-      box-shadow: 0 6px 0 #7d0e0e;
-    }
-
-    .field {
-      display: grid;
-      gap: 10px;
-    }
-
-    label {
-      color: var(--green-dark);
-      font-size: clamp(30px, 8vw, 46px);
-      font-weight: 900;
-    }
-
-    input {
-      width: 100%;
-      min-height: 92px;
-      border: 4px solid var(--green);
+    .history-entry {
+      position: fixed;
+      right: max(12px, env(safe-area-inset-right));
+      bottom: max(12px, env(safe-area-inset-bottom));
+      min-height: 44px;
+      border: 2px solid var(--line);
       border-radius: 8px;
-      padding: 12px 16px;
-      color: var(--text);
+      padding: 8px 12px;
       background: var(--white);
-      font-size: clamp(36px, 11vw, 64px);
-      font-weight: 900;
-    }
-
-    .period-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .period-button {
-      min-height: 76px;
-      border: 4px solid var(--green);
-      border-radius: 8px;
-      color: var(--green-dark);
-      background: var(--white);
-      font-size: clamp(26px, 7vw, 38px);
-      font-weight: 900;
-    }
-
-    .period-button.active {
-      color: var(--white);
-      background: var(--green);
-    }
-
-    .recognized {
-      margin: 0 0 12px;
-      color: var(--green-dark);
-      font-size: clamp(36px, 10vw, 58px);
-      line-height: 1.18;
-      font-weight: 900;
-      word-break: break-word;
-    }
-
-    .row {
-      padding: 12px 0;
-      border-top: 2px solid var(--line);
-      font-size: clamp(27px, 7vw, 40px);
-      font-weight: 900;
-      word-break: break-word;
-    }
-
-    .row span {
       color: var(--muted);
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .center-message {
+      justify-content: center;
+      gap: 28px;
+      text-align: center;
+    }
+
+    .message {
+      color: var(--green-dark);
+      font-size: clamp(54px, 16vw, 92px);
+      line-height: 1.15;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .message.error {
+      color: var(--red);
+    }
+
+    .message.small {
+      font-size: clamp(42px, 13vw, 76px);
     }
 
     .alert {
       display: none;
-      margin: 12px 0;
       border-radius: 8px;
       padding: 16px;
-      text-align: center;
-      font-size: clamp(32px, 9vw, 50px);
+      font-size: clamp(36px, 10vw, 56px);
       font-weight: 900;
-      line-height: 1.15;
+      line-height: 1.16;
+      text-align: center;
     }
 
     .alert.high {
@@ -269,12 +153,60 @@
       background: #eef6ff;
     }
 
+    .big-button {
+      width: 100%;
+      min-height: 112px;
+      border: 0;
+      border-radius: 8px;
+      padding: 20px 16px;
+      color: var(--white);
+      background: var(--green);
+      box-shadow: 0 6px 0 var(--green-dark);
+      font-size: clamp(34px, 10vw, 58px);
+      line-height: 1.18;
+      font-weight: 900;
+      touch-action: manipulation;
+    }
+
+    .big-button.secondary {
+      color: var(--green-dark);
+      background: var(--white);
+      border: 4px solid var(--green);
+      box-shadow: none;
+    }
+
+    .big-button.red {
+      background: var(--red);
+      box-shadow: 0 6px 0 #7d0e0e;
+    }
+
+    .history-screen {
+      gap: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--green-dark);
+      font-size: clamp(36px, 10vw, 56px);
+      line-height: 1.12;
+      font-weight: 900;
+      text-align: center;
+      letter-spacing: 0;
+    }
+
     .history-list {
       display: grid;
       gap: 18px;
     }
 
-    .day h3 {
+    .day {
+      background: var(--white);
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .day h2 {
       margin: 0 0 10px;
       color: var(--green-dark);
       font-size: clamp(32px, 9vw, 48px);
@@ -295,7 +227,7 @@
 
     .record-note {
       color: var(--muted);
-      font-size: clamp(23px, 6vw, 32px);
+      font-size: clamp(22px, 6vw, 32px);
       font-weight: 800;
       word-break: break-word;
     }
@@ -310,79 +242,48 @@
       font-weight: 900;
     }
 
+    .history-actions {
+      display: grid;
+      gap: 18px;
+      margin-top: auto;
+    }
+
     .empty {
       margin: auto 0;
-      padding: 30px 8px;
-      text-align: center;
+      padding: 34px 8px;
       color: var(--muted);
-      font-size: clamp(32px, 9vw, 50px);
+      text-align: center;
+      font-size: clamp(34px, 10vw, 56px);
       font-weight: 900;
     }
   </style>
 </head>
 <body>
   <main class="app">
-    <header>
-      <h1>血糖记录</h1>
-    </header>
-
-    <section id="homeScreen" class="screen active" aria-label="首页">
-      <div class="install-tip big-text">
-        <p>iPhone 用 Safari 打开。</p>
-        <p>点底部分享按钮，再点“添加到主屏幕”。</p>
-      </div>
-      <div id="homeStatus" class="status" aria-live="polite"></div>
-      <div class="actions">
-        <button id="voiceBtn" class="big-button" type="button">开始说话记录血糖</button>
-        <button id="manualBtn" class="big-button secondary" type="button">手动输入血糖</button>
-        <button id="historyBtn" class="big-button secondary" type="button">查看历史</button>
-      </div>
+    <section id="homeScreen" class="screen home active" aria-label="首页">
+      <button id="startBtn" class="main-button" type="button">开始说话记录血糖</button>
+      <button id="historyEntry" class="history-entry" type="button">查看历史</button>
     </section>
 
-    <section id="manualScreen" class="screen" aria-label="手动输入">
-      <h2>手动输入</h2>
-      <div id="manualStatus" class="form-error" aria-live="polite"></div>
-      <div class="panel">
-        <div class="field">
-          <label for="manualValue">血糖值</label>
-          <input id="manualValue" type="number" inputmode="decimal" min="0" max="40" step="0.1" placeholder="例如 6.8">
-        </div>
-      </div>
-      <div class="panel">
-        <p class="big-text">选择时段</p>
-        <div class="period-grid" id="periodGrid">
-          <button class="period-button active" type="button" data-period="自动">自动</button>
-          <button class="period-button" type="button" data-period="早上">早上</button>
-          <button class="period-button" type="button" data-period="中午">中午</button>
-          <button class="period-button" type="button" data-period="晚上">晚上</button>
-          <button class="period-button" type="button" data-period="其他">其他</button>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="manualNextBtn" class="big-button" type="button">确认</button>
-        <button id="manualBackBtn" class="big-button secondary" type="button">返回首页</button>
-      </div>
+    <section id="listeningScreen" class="screen center-message" aria-label="正在听">
+      <div class="message">正在听，请说血糖</div>
     </section>
 
-    <section id="confirmScreen" class="screen" aria-label="确认保存">
-      <div class="panel">
-        <p id="recognizedText" class="recognized">已识别：</p>
-        <div id="sugarAlert" class="alert"></div>
-        <div class="row"><span>保存日期：</span><strong id="confirmDate"></strong></div>
-        <div class="row"><span>保存时间：</span><strong id="confirmTime"></strong></div>
-        <div class="row"><span>时段：</span><strong id="confirmPeriod"></strong></div>
-        <div class="row"><span>内容：</span><strong id="confirmRaw"></strong></div>
-      </div>
-      <div class="actions">
-        <button id="saveBtn" class="big-button" type="button">保存</button>
-        <button id="retryBtn" class="big-button secondary" type="button">重新记录</button>
-      </div>
+    <section id="resultScreen" class="screen center-message" aria-label="记录成功">
+      <div id="resultText" class="message small">已记录</div>
+      <div id="sugarAlert" class="alert"></div>
+      <button id="againBtn" class="big-button" type="button">继续记录</button>
     </section>
 
-    <section id="historyScreen" class="screen" aria-label="历史记录">
-      <h2>历史记录</h2>
+    <section id="errorScreen" class="screen center-message" aria-label="重新说">
+      <div id="errorText" class="message error">没听清，请再说一遍</div>
+      <button id="retryBtn" class="big-button" type="button">重新说一遍</button>
+    </section>
+
+    <section id="historyScreen" class="screen history-screen" aria-label="历史记录">
+      <h1>历史记录</h1>
       <div id="historyList" class="history-list"></div>
-      <div class="actions">
+      <div class="history-actions">
         <button id="backBtn" class="big-button secondary" type="button">返回首页</button>
         <button id="clearBtn" class="big-button red" type="button">清空全部记录</button>
       </div>
@@ -396,29 +297,20 @@
       var STORAGE_KEY = "bloodSugarRecords.iphonePwa.v1";
       var HIGH_LIMIT = 10;
       var LOW_LIMIT = 3.9;
-      var pendingRecord = null;
-      var selectedPeriod = "自动";
+      var listenTimer = null;
+      var activeRecognition = null;
 
       var homeScreen = document.getElementById("homeScreen");
-      var manualScreen = document.getElementById("manualScreen");
-      var confirmScreen = document.getElementById("confirmScreen");
+      var listeningScreen = document.getElementById("listeningScreen");
+      var resultScreen = document.getElementById("resultScreen");
+      var errorScreen = document.getElementById("errorScreen");
       var historyScreen = document.getElementById("historyScreen");
-      var homeStatus = document.getElementById("homeStatus");
-      var voiceBtn = document.getElementById("voiceBtn");
-      var manualBtn = document.getElementById("manualBtn");
-      var manualStatus = document.getElementById("manualStatus");
-      var historyBtn = document.getElementById("historyBtn");
-      var manualValue = document.getElementById("manualValue");
-      var periodGrid = document.getElementById("periodGrid");
-      var manualNextBtn = document.getElementById("manualNextBtn");
-      var manualBackBtn = document.getElementById("manualBackBtn");
-      var recognizedText = document.getElementById("recognizedText");
+      var startBtn = document.getElementById("startBtn");
+      var historyEntry = document.getElementById("historyEntry");
+      var resultText = document.getElementById("resultText");
       var sugarAlert = document.getElementById("sugarAlert");
-      var confirmDate = document.getElementById("confirmDate");
-      var confirmTime = document.getElementById("confirmTime");
-      var confirmPeriod = document.getElementById("confirmPeriod");
-      var confirmRaw = document.getElementById("confirmRaw");
-      var saveBtn = document.getElementById("saveBtn");
+      var againBtn = document.getElementById("againBtn");
+      var errorText = document.getElementById("errorText");
       var retryBtn = document.getElementById("retryBtn");
       var historyList = document.getElementById("historyList");
       var backBtn = document.getElementById("backBtn");
@@ -426,19 +318,11 @@
 
       function showScreen(name) {
         homeScreen.classList.toggle("active", name === "home");
-        manualScreen.classList.toggle("active", name === "manual");
-        confirmScreen.classList.toggle("active", name === "confirm");
+        listeningScreen.classList.toggle("active", name === "listening");
+        resultScreen.classList.toggle("active", name === "result");
+        errorScreen.classList.toggle("active", name === "error");
         historyScreen.classList.toggle("active", name === "history");
         window.scrollTo(0, 0);
-      }
-
-      function setStatus(text, isError) {
-        homeStatus.textContent = text || "";
-        homeStatus.classList.toggle("error", Boolean(isError));
-      }
-
-      function setManualStatus(text) {
-        manualStatus.textContent = text || "";
       }
 
       function two(value) {
@@ -491,45 +375,59 @@
         return Math.round(value * 10) / 10;
       }
 
-      function makePendingFromText(text) {
-        var value = parseValue(text);
+      function getRecords() {
+        try {
+          var records = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          return Array.isArray(records) ? records : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function saveRecords(records) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      }
+
+      function saveRecognizedText(rawText) {
+        var value = parseValue(rawText);
         if (value === null) return null;
-        return {
-          source: "语音",
-          value: value,
-          periodHint: periodByText(text),
-          rawText: String(text || "").trim()
-        };
-      }
 
-      function makePendingFromManual() {
-        var value = parseValue(manualValue.value);
-        if (value === null) return null;
-        return {
-          source: "手动",
-          value: value,
-          periodHint: selectedPeriod === "自动" ? "" : selectedPeriod,
-          rawText: "手动输入 " + value
-        };
-      }
-
-      function previewPeriod(pending, date) {
-        return pending.periodHint || periodByTime(date);
-      }
-
-      function showConfirm(pending) {
-        pendingRecord = pending;
         var now = new Date();
-        var period = previewPeriod(pending, now);
-        recognizedText.textContent = pending.source === "语音"
-          ? "已识别：" + period + "血糖 " + pending.value
-          : "已输入：" + period + "血糖 " + pending.value;
-        confirmDate.textContent = formatDate(now);
-        confirmTime.textContent = formatTime(now);
-        confirmPeriod.textContent = period;
-        confirmRaw.textContent = pending.rawText || pending.source;
-        showSugarAlert(pending.value);
-        showScreen("confirm");
+        var period = periodByText(rawText) || periodByTime(now);
+        var record = {
+          id: String(Date.now()) + "-" + Math.random().toString(16).slice(2),
+          date: formatDate(now),
+          time: formatTime(now),
+          period: period,
+          value: value,
+          rawText: String(rawText || "").trim(),
+          source: "语音",
+          createdAt: now.toISOString()
+        };
+        var records = getRecords();
+        records.push(record);
+        records.sort(function (a, b) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        saveRecords(records);
+        return record;
+      }
+
+      function clearListenTimer() {
+        if (listenTimer) {
+          window.clearTimeout(listenTimer);
+          listenTimer = null;
+        }
+      }
+
+      function stopRecognition() {
+        clearListenTimer();
+        if (activeRecognition) {
+          try {
+            activeRecognition.stop();
+          } catch (error) {}
+          activeRecognition = null;
+        }
       }
 
       function showSugarAlert(value) {
@@ -544,113 +442,64 @@
         }
       }
 
-      function getRecords() {
-        try {
-          var records = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-          return Array.isArray(records) ? records : [];
-        } catch (error) {
-          return [];
-        }
-      }
-
-      function saveRecords(records) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-      }
-
-      function savePending() {
-        if (!pendingRecord) return;
-        var now = new Date();
-        var record = {
-          id: String(Date.now()) + "-" + Math.random().toString(16).slice(2),
-          date: formatDate(now),
-          time: formatTime(now),
-          period: previewPeriod(pendingRecord, now),
-          value: pendingRecord.value,
-          rawText: pendingRecord.rawText || pendingRecord.source,
-          source: pendingRecord.source,
-          createdAt: now.toISOString()
-        };
-        var records = getRecords();
-        records.push(record);
-        records.sort(function (a, b) {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-        saveRecords(records);
-        pendingRecord = null;
-        setStatus("已保存", false);
-        showScreen("home");
+      function showError(text) {
+        stopRecognition();
+        errorText.textContent = text || "没听清，请再说一遍";
+        showScreen("error");
       }
 
       function startVoice() {
         var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!Recognition) {
-          setStatus("iPhone Safari 如果不能语音识别，请用手动输入", true);
-          openManual();
+          showError("没听清，请再说一遍");
           return;
         }
 
+        stopRecognition();
+        showScreen("listening");
+
         var recognition = new Recognition();
+        activeRecognition = recognition;
         recognition.lang = "zh-CN";
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
         recognition.continuous = false;
 
-        voiceBtn.disabled = true;
-        voiceBtn.textContent = "正在听，请说话";
-        setStatus("请说：早上血糖8", false);
+        listenTimer = window.setTimeout(function () {
+          showError("没听清，请再说一遍");
+        }, 8000);
 
         recognition.onresult = function (event) {
           var text = "";
           if (event.results && event.results[0] && event.results[0][0]) {
             text = event.results[0][0].transcript || "";
           }
-          var pending = makePendingFromText(text);
-          resetVoiceButton();
-          if (!pending) {
-            setStatus("没听清血糖数值，请重新说一遍，或手动输入", true);
+          clearListenTimer();
+          activeRecognition = null;
+          var record = saveRecognizedText(text);
+          if (!record) {
+            showError("没听清，请再说一遍");
             return;
           }
-          setStatus("", false);
-          showConfirm(pending);
+          resultText.textContent = "已记录：" + record.period + "血糖 " + record.value;
+          showSugarAlert(record.value);
+          showScreen("result");
         };
 
         recognition.onerror = function () {
-          resetVoiceButton();
-          setStatus("语音不能用，请手动输入", true);
-          openManual();
+          showError("没听清，请再说一遍");
         };
 
-        recognition.onend = resetVoiceButton;
+        recognition.onend = function () {
+          clearListenTimer();
+          activeRecognition = null;
+        };
 
         try {
           recognition.start();
         } catch (error) {
-          resetVoiceButton();
-          setStatus("语音不能用，请手动输入", true);
-          openManual();
+          showError("没听清，请再说一遍");
         }
-      }
-
-      function resetVoiceButton() {
-        voiceBtn.disabled = false;
-        voiceBtn.textContent = "开始说话记录血糖";
-      }
-
-      function openManual() {
-        manualValue.value = "";
-        setManualStatus("");
-        selectedPeriod = "自动";
-        updatePeriodButtons();
-        showScreen("manual");
-        setTimeout(function () {
-          manualValue.focus();
-        }, 200);
-      }
-
-      function updatePeriodButtons() {
-        Array.prototype.forEach.call(periodGrid.querySelectorAll(".period-button"), function (button) {
-          button.classList.toggle("active", button.dataset.period === selectedPeriod);
-        });
       }
 
       function renderHistory() {
@@ -670,7 +519,7 @@
         Object.keys(groups).sort().reverse().forEach(function (date) {
           var day = document.createElement("div");
           day.className = "day";
-          var title = document.createElement("h3");
+          var title = document.createElement("h2");
           title.textContent = date;
           day.appendChild(title);
 
@@ -686,7 +535,7 @@
 
             var note = document.createElement("div");
             note.className = "record-note";
-            note.textContent = "来源：" + (record.source || "记录") + "；内容：" + record.rawText;
+            note.textContent = "原始语音：" + (record.rawText || "");
 
             var del = document.createElement("button");
             del.className = "delete-button";
@@ -720,31 +569,11 @@
         renderHistory();
       }
 
-      voiceBtn.addEventListener("click", startVoice);
-      manualBtn.addEventListener("click", openManual);
-      manualBackBtn.addEventListener("click", function () {
-        showScreen("home");
-      });
-      manualNextBtn.addEventListener("click", function () {
-        var pending = makePendingFromManual();
-        if (!pending) {
-          setManualStatus("请输入血糖数值，例如 6.8");
-          return;
-        }
-        setStatus("", false);
-        showConfirm(pending);
-      });
-      periodGrid.addEventListener("click", function (event) {
-        if (!event.target.dataset.period) return;
-        selectedPeriod = event.target.dataset.period;
-        updatePeriodButtons();
-      });
-      saveBtn.addEventListener("click", savePending);
-      retryBtn.addEventListener("click", function () {
-        pendingRecord = null;
-        openManual();
-      });
-      historyBtn.addEventListener("click", function () {
+      startBtn.addEventListener("click", startVoice);
+      retryBtn.addEventListener("click", startVoice);
+      againBtn.addEventListener("click", startVoice);
+      historyEntry.addEventListener("click", function () {
+        stopRecognition();
         renderHistory();
         showScreen("history");
       });

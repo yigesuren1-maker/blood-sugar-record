@@ -1,4 +1,4 @@
-const CACHE_NAME = "blood-sugar-iphone-pwa-v1";
+const CACHE_NAME = "blood-sugar-iphone-pwa-v2";
 const APP_FILES = [
   "./",
   "./index.html",
