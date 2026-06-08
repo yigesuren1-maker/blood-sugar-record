@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b6b3a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="血糖记录">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>血糖记录</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.png">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fffdf2;
+      --text: #101010;
+      --muted: #444444;
+      --green: #0b6b3a;
+      --green-dark: #084e2b;
+      --yellow: #fff2a8;
+      --line: #c9c9c9;
+      --red: #c51616;
+      --blue: #075fc0;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 28px;
+      line-height: 1.4;
+    }
+
+    body {
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      width: min(100%, 760px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 18px 16px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    header {
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--green-dark);
+      font-size: clamp(42px, 13vw, 68px);
+      line-height: 1.05;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0;
+      color: var(--green-dark);
+      font-size: clamp(36px, 10vw, 56px);
+      line-height: 1.12;
+      font-weight: 900;
+    }
+
+    .screen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .big-text {
+      font-size: clamp(28px, 8vw, 44px);
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .install-tip,
+    .panel,
+    .day {
+      background: var(--white);
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .install-tip {
+      background: var(--yellow);
+      border-color: #877400;
+      color: #332900;
+    }
+
+    .install-tip p,
+    .panel p {
+      margin: 0;
+    }
+
+    .status {
+      min-height: 48px;
+      text-align: center;
+      color: var(--green-dark);
+      font-size: clamp(28px, 8vw, 44px);
+      font-weight: 900;
+    }
+
+    .status.error {
+      color: var(--red);
+    }
+
+    .form-error {
+      min-height: 44px;
+      color: var(--red);
+      text-align: center;
+      font-size: clamp(28px, 8vw, 44px);
+      font-weight: 900;
+    }
+
+    .actions {
+      display: grid;
+      gap: 18px;
+      margin-top: auto;
+    }
+
+    .big-button {
+      width: 100%;
+      min-height: 104px;
+      border: 0;
+      border-radius: 8px;
+      padding: 20px 16px;
+      color: var(--white);
+      background: var(--green);
+      box-shadow: 0 6px 0 var(--green-dark);
+      font-size: clamp(32px, 9vw, 56px);
+      line-height: 1.18;
+      font-weight: 900;
+      touch-action: manipulation;
+    }
+
+    .big-button:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 var(--green-dark);
+    }
+
+    .big-button.secondary {
+      color: var(--green-dark);
+      background: var(--white);
+      border: 4px solid var(--green);
+      box-shadow: none;
+    }
+
+    .big-button.red {
+      background: var(--red);
+      box-shadow: 0 6px 0 #7d0e0e;
+    }
+
+    .field {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      color: var(--green-dark);
+      font-size: clamp(30px, 8vw, 46px);
+      font-weight: 900;
+    }
+
+    input {
+      width: 100%;
+      min-height: 92px;
+      border: 4px solid var(--green);
+      border-radius: 8px;
+      padding: 12px 16px;
+      color: var(--text);
+      background: var(--white);
+      font-size: clamp(36px, 11vw, 64px);
+      font-weight: 900;
+    }
+
+    .period-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .period-button {
+      min-height: 76px;
+      border: 4px solid var(--green);
+      border-radius: 8px;
+      color: var(--green-dark);
+      background: var(--white);
+      font-size: clamp(26px, 7vw, 38px);
+      font-weight: 900;
+    }
+
+    .period-button.active {
+      color: var(--white);
+      background: var(--green);
+    }
+
+    .recognized {
+      margin: 0 0 12px;
+      color: var(--green-dark);
+      font-size: clamp(36px, 10vw, 58px);
+      line-height: 1.18;
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .row {
+      padding: 12px 0;
+      border-top: 2px solid var(--line);
+      font-size: clamp(27px, 7vw, 40px);
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .row span {
+      color: var(--muted);
+    }
+
+    .alert {
+      display: none;
+      margin: 12px 0;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      font-size: clamp(32px, 9vw, 50px);
+      font-weight: 900;
+      line-height: 1.15;
+    }
+
+    .alert.high {
+      display: block;
+      border: 4px solid var(--red);
+      color: var(--red);
+      background: #fff0f0;
+    }
+
+    .alert.low {
+      display: block;
+      border: 4px solid var(--blue);
+      color: var(--blue);
+      background: #eef6ff;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 18px;
+    }
+
+    .day h3 {
+      margin: 0 0 10px;
+      color: var(--green-dark);
+      font-size: clamp(32px, 9vw, 48px);
+      line-height: 1.15;
+    }
+
+    .record {
+      display: grid;
+      gap: 10px;
+      padding: 16px 0;
+      border-top: 3px solid var(--line);
+    }
+
+    .record-main {
+      font-size: clamp(30px, 8vw, 44px);
+      font-weight: 900;
+    }
+
+    .record-note {
+      color: var(--muted);
+      font-size: clamp(23px, 6vw, 32px);
+      font-weight: 800;
+      word-break: break-word;
+    }
+
+    .delete-button {
+      min-height: 76px;
+      border: 4px solid var(--red);
+      border-radius: 8px;
+      color: var(--red);
+      background: var(--white);
+      font-size: clamp(26px, 7vw, 36px);
+      font-weight: 900;
+    }
+
+    .empty {
+      margin: auto 0;
+      padding: 30px 8px;
+      text-align: center;
+      color: var(--muted);
+      font-size: clamp(32px, 9vw, 50px);
+      font-weight: 900;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>血糖记录</h1>
+    </header>
+
+    <section id="homeScreen" class="screen active" aria-label="首页">
+      <div class="install-tip big-text">
+        <p>iPhone 用 Safari 打开。</p>
+        <p>点底部分享按钮，再点“添加到主屏幕”。</p>
+      </div>
+      <div id="homeStatus" class="status" aria-live="polite"></div>
+      <div class="actions">
+        <button id="voiceBtn" class="big-button" type="button">开始说话记录血糖</button>
+        <button id="manualBtn" class="big-button secondary" type="button">手动输入血糖</button>
+        <button id="historyBtn" class="big-button secondary" type="button">查看历史</button>
+      </div>
+    </section>
+
+    <section id="manualScreen" class="screen" aria-label="手动输入">
+      <h2>手动输入</h2>
+      <div id="manualStatus" class="form-error" aria-live="polite"></div>
+      <div class="panel">
+        <div class="field">
+          <label for="manualValue">血糖值</label>
+          <input id="manualValue" type="number" inputmode="decimal" min="0" max="40" step="0.1" placeholder="例如 6.8">
+        </div>
+      </div>
+      <div class="panel">
+        <p class="big-text">选择时段</p>
+        <div class="period-grid" id="periodGrid">
+          <button class="period-button active" type="button" data-period="自动">自动</button>
+          <button class="period-button" type="button" data-period="早上">早上</button>
+          <button class="period-button" type="button" data-period="中午">中午</button>
+          <button class="period-button" type="button" data-period="晚上">晚上</button>
+          <button class="period-button" type="button" data-period="其他">其他</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="manualNextBtn" class="big-button" type="button">确认</button>
+        <button id="manualBackBtn" class="big-button secondary" type="button">返回首页</button>
+      </div>
+    </section>
+
+    <section id="confirmScreen" class="screen" aria-label="确认保存">
+      <div class="panel">
+        <p id="recognizedText" class="recognized">已识别：</p>
+        <div id="sugarAlert" class="alert"></div>
+        <div class="row"><span>保存日期：</span><strong id="confirmDate"></strong></div>
+        <div class="row"><span>保存时间：</span><strong id="confirmTime"></strong></div>
+        <div class="row"><span>时段：</span><strong id="confirmPeriod"></strong></div>
+        <div class="row"><span>内容：</span><strong id="confirmRaw"></strong></div>
+      </div>
+      <div class="actions">
+        <button id="saveBtn" class="big-button" type="button">保存</button>
+        <button id="retryBtn" class="big-button secondary" type="button">重新记录</button>
+      </div>
+    </section>
+
+    <section id="historyScreen" class="screen" aria-label="历史记录">
+      <h2>历史记录</h2>
+      <div id="historyList" class="history-list"></div>
+      <div class="actions">
+        <button id="backBtn" class="big-button secondary" type="button">返回首页</button>
+        <button id="clearBtn" class="big-button red" type="button">清空全部记录</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var STORAGE_KEY = "bloodSugarRecords.iphonePwa.v1";
+      var HIGH_LIMIT = 10;
+      var LOW_LIMIT = 3.9;
+      var pendingRecord = null;
+      var selectedPeriod = "自动";
+
+      var homeScreen = document.getElementById("homeScreen");
+      var manualScreen = document.getElementById("manualScreen");
+      var confirmScreen = document.getElementById("confirmScreen");
+      var historyScreen = document.getElementById("historyScreen");
+      var homeStatus = document.getElementById("homeStatus");
+      var voiceBtn = document.getElementById("voiceBtn");
+      var manualBtn = document.getElementById("manualBtn");
+      var manualStatus = document.getElementById("manualStatus");
+      var historyBtn = document.getElementById("historyBtn");
+      var manualValue = document.getElementById("manualValue");
+      var periodGrid = document.getElementById("periodGrid");
+      var manualNextBtn = document.getElementById("manualNextBtn");
+      var manualBackBtn = document.getElementById("manualBackBtn");
+      var recognizedText = document.getElementById("recognizedText");
+      var sugarAlert = document.getElementById("sugarAlert");
+      var confirmDate = document.getElementById("confirmDate");
+      var confirmTime = document.getElementById("confirmTime");
+      var confirmPeriod = document.getElementById("confirmPeriod");
+      var confirmRaw = document.getElementById("confirmRaw");
+      var saveBtn = document.getElementById("saveBtn");
+      var retryBtn = document.getElementById("retryBtn");
+      var historyList = document.getElementById("historyList");
+      var backBtn = document.getElementById("backBtn");
+      var clearBtn = document.getElementById("clearBtn");
+
+      function showScreen(name) {
+        homeScreen.classList.toggle("active", name === "home");
+        manualScreen.classList.toggle("active", name === "manual");
+        confirmScreen.classList.toggle("active", name === "confirm");
+        historyScreen.classList.toggle("active", name === "history");
+        window.scrollTo(0, 0);
+      }
+
+      function setStatus(text, isError) {
+        homeStatus.textContent = text || "";
+        homeStatus.classList.toggle("error", Boolean(isError));
+      }
+
+      function setManualStatus(text) {
+        manualStatus.textContent = text || "";
+      }
+
+      function two(value) {
+        return String(value).padStart(2, "0");
+      }
+
+      function formatDate(date) {
+        return date.getFullYear() + "-" + two(date.getMonth() + 1) + "-" + two(date.getDate());
+      }
+
+      function formatTime(date) {
+        return two(date.getHours()) + ":" + two(date.getMinutes());
+      }
+
+      function periodByText(text) {
+        if (/早上|早晨|早餐前/.test(text)) return "早上";
+        if (/中午|午饭前|午餐前/.test(text)) return "中午";
+        if (/晚上|晚饭前|晚餐前/.test(text)) return "晚上";
+        return "";
+      }
+
+      function periodByTime(date) {
+        var hour = date.getHours();
+        if (hour >= 5 && hour <= 10) return "早上";
+        if (hour >= 11 && hour <= 15) return "中午";
+        if (hour >= 16 && hour <= 22) return "晚上";
+        return "其他";
+      }
+
+      function parseValue(text) {
+        var normalized = String(text || "")
+          .replace(/[，。；;：:]/g, " ")
+          .replace(/点/g, ".")
+          .replace(/零/g, "0")
+          .replace(/一/g, "1")
+          .replace(/二/g, "2")
+          .replace(/两/g, "2")
+          .replace(/三/g, "3")
+          .replace(/四/g, "4")
+          .replace(/五/g, "5")
+          .replace(/六/g, "6")
+          .replace(/七/g, "7")
+          .replace(/八/g, "8")
+          .replace(/九/g, "9");
+        var sugarMatch = normalized.match(/血糖\s*([0-9]+(?:\.[0-9]+)?)/);
+        var numberMatch = normalized.match(/([0-9]+(?:\.[0-9]+)?)/);
+        var valueText = sugarMatch ? sugarMatch[1] : (numberMatch ? numberMatch[1] : "");
+        var value = Number(valueText);
+        if (!Number.isFinite(value) || value <= 0 || value > 40) return null;
+        return Math.round(value * 10) / 10;
+      }
+
+      function makePendingFromText(text) {
+        var value = parseValue(text);
+        if (value === null) return null;
+        return {
+          source: "语音",
+          value: value,
+          periodHint: periodByText(text),
+          rawText: String(text || "").trim()
+        };
+      }
+
+      function makePendingFromManual() {
+        var value = parseValue(manualValue.value);
+        if (value === null) return null;
+        return {
+          source: "手动",
+          value: value,
+          periodHint: selectedPeriod === "自动" ? "" : selectedPeriod,
+          rawText: "手动输入 " + value
+        };
+      }
+
+      function previewPeriod(pending, date) {
+        return pending.periodHint || periodByTime(date);
+      }
+
+      function showConfirm(pending) {
+        pendingRecord = pending;
+        var now = new Date();
+        var period = previewPeriod(pending, now);
+        recognizedText.textContent = pending.source === "语音"
+          ? "已识别：" + period + "血糖 " + pending.value
+          : "已输入：" + period + "血糖 " + pending.value;
+        confirmDate.textContent = formatDate(now);
+        confirmTime.textContent = formatTime(now);
+        confirmPeriod.textContent = period;
+        confirmRaw.textContent = pending.rawText || pending.source;
+        showSugarAlert(pending.value);
+        showScreen("confirm");
+      }
+
+      function showSugarAlert(value) {
+        sugarAlert.className = "alert";
+        sugarAlert.textContent = "";
+        if (value >= HIGH_LIMIT) {
+          sugarAlert.textContent = "血糖偏高，请注意";
+          sugarAlert.classList.add("high");
+        } else if (value <= LOW_LIMIT) {
+          sugarAlert.textContent = "血糖偏低，请注意";
+          sugarAlert.classList.add("low");
+        }
+      }
+
+      function getRecords() {
+        try {
+          var records = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          return Array.isArray(records) ? records : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function saveRecords(records) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      }
+
+      function savePending() {
+        if (!pendingRecord) return;
+        var now = new Date();
+        var record = {
+          id: String(Date.now()) + "-" + Math.random().toString(16).slice(2),
+          date: formatDate(now),
+          time: formatTime(now),
+          period: previewPeriod(pendingRecord, now),
+          value: pendingRecord.value,
+          rawText: pendingRecord.rawText || pendingRecord.source,
+          source: pendingRecord.source,
+          createdAt: now.toISOString()
+        };
+        var records = getRecords();
+        records.push(record);
+        records.sort(function (a, b) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        saveRecords(records);
+        pendingRecord = null;
+        setStatus("已保存", false);
+        showScreen("home");
+      }
+
+      function startVoice() {
+        var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!Recognition) {
+          setStatus("iPhone Safari 如果不能语音识别，请用手动输入", true);
+          openManual();
+          return;
+        }
+
+        var recognition = new Recognition();
+        recognition.lang = "zh-CN";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = false;
+
+        voiceBtn.disabled = true;
+        voiceBtn.textContent = "正在听，请说话";
+        setStatus("请说：早上血糖8", false);
+
+        recognition.onresult = function (event) {
+          var text = "";
+          if (event.results && event.results[0] && event.results[0][0]) {
+            text = event.results[0][0].transcript || "";
+          }
+          var pending = makePendingFromText(text);
+          resetVoiceButton();
+          if (!pending) {
+            setStatus("没听清血糖数值，请重新说一遍，或手动输入", true);
+            return;
+          }
+          setStatus("", false);
+          showConfirm(pending);
+        };
+
+        recognition.onerror = function () {
+          resetVoiceButton();
+          setStatus("语音不能用，请手动输入", true);
+          openManual();
+        };
+
+        recognition.onend = resetVoiceButton;
+
+        try {
+          recognition.start();
+        } catch (error) {
+          resetVoiceButton();
+          setStatus("语音不能用，请手动输入", true);
+          openManual();
+        }
+      }
+
+      function resetVoiceButton() {
+        voiceBtn.disabled = false;
+        voiceBtn.textContent = "开始说话记录血糖";
+      }
+
+      function openManual() {
+        manualValue.value = "";
+        setManualStatus("");
+        selectedPeriod = "自动";
+        updatePeriodButtons();
+        showScreen("manual");
+        setTimeout(function () {
+          manualValue.focus();
+        }, 200);
+      }
+
+      function updatePeriodButtons() {
+        Array.prototype.forEach.call(periodGrid.querySelectorAll(".period-button"), function (button) {
+          button.classList.toggle("active", button.dataset.period === selectedPeriod);
+        });
+      }
+
+      function renderHistory() {
+        var records = getRecords();
+        historyList.innerHTML = "";
+        if (!records.length) {
+          historyList.innerHTML = '<div class="empty">还没有记录</div>';
+          return;
+        }
+
+        var groups = {};
+        records.forEach(function (record) {
+          if (!groups[record.date]) groups[record.date] = [];
+          groups[record.date].push(record);
+        });
+
+        Object.keys(groups).sort().reverse().forEach(function (date) {
+          var day = document.createElement("div");
+          day.className = "day";
+          var title = document.createElement("h3");
+          title.textContent = date;
+          day.appendChild(title);
+
+          groups[date].sort(function (a, b) {
+            return b.time.localeCompare(a.time);
+          }).forEach(function (record) {
+            var item = document.createElement("div");
+            item.className = "record";
+
+            var main = document.createElement("div");
+            main.className = "record-main";
+            main.textContent = record.time + "  " + record.period + "  血糖 " + record.value;
+
+            var note = document.createElement("div");
+            note.className = "record-note";
+            note.textContent = "来源：" + (record.source || "记录") + "；内容：" + record.rawText;
+
+            var del = document.createElement("button");
+            del.className = "delete-button";
+            del.type = "button";
+            del.textContent = "删除这条";
+            del.addEventListener("click", function () {
+              deleteRecord(record.id);
+            });
+
+            item.appendChild(main);
+            item.appendChild(note);
+            item.appendChild(del);
+            day.appendChild(item);
+          });
+
+          historyList.appendChild(day);
+        });
+      }
+
+      function deleteRecord(id) {
+        saveRecords(getRecords().filter(function (record) {
+          return record.id !== id;
+        }));
+        renderHistory();
+      }
+
+      function clearAll() {
+        if (!getRecords().length) return;
+        if (!window.confirm("确定清空全部血糖记录吗？")) return;
+        saveRecords([]);
+        renderHistory();
+      }
+
+      voiceBtn.addEventListener("click", startVoice);
+      manualBtn.addEventListener("click", openManual);
+      manualBackBtn.addEventListener("click", function () {
+        showScreen("home");
+      });
+      manualNextBtn.addEventListener("click", function () {
+        var pending = makePendingFromManual();
+        if (!pending) {
+          setManualStatus("请输入血糖数值，例如 6.8");
+          return;
+        }
+        setStatus("", false);
+        showConfirm(pending);
+      });
+      periodGrid.addEventListener("click", function (event) {
+        if (!event.target.dataset.period) return;
+        selectedPeriod = event.target.dataset.period;
+        updatePeriodButtons();
+      });
+      saveBtn.addEventListener("click", savePending);
+      retryBtn.addEventListener("click", function () {
+        pendingRecord = null;
+        openManual();
+      });
+      historyBtn.addEventListener("click", function () {
+        renderHistory();
+        showScreen("history");
+      });
+      backBtn.addEventListener("click", function () {
+        showScreen("home");
+      });
+      clearBtn.addEventListener("click", clearAll);
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("service-worker.js").catch(function () {});
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
