@@ -1,4 +1,4 @@
-const CACHE_NAME = "blood-sugar-cloudbase-postgres-v2";
+const CACHE_NAME = "blood-sugar-cloudbase-postgres-v3";
 const APP_FILES = [
   "./",
   "./index.html",

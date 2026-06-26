@@ -171,14 +171,27 @@
       var statusText = document.getElementById("statusText");
       var recordList = document.getElementById("recordList");
 
+      function getCloudBaseSdk() {
+        return window.cloudbase || window.tcb || null;
+      }
+
       function initCloudBase() {
-        if (cloudApp || !window.cloudbase || CONFIG.envId.indexOf("请替换") === 0) return cloudApp;
-        cloudApp = window.cloudbase.init({ env: CONFIG.envId });
+        if (cloudApp) return cloudApp;
+        var sdk = getCloudBaseSdk();
+        if (!sdk) {
+          throw new Error("CloudBase SDK未加载，请检查网络或SDK地址");
+        }
+        cloudApp = sdk.init({ env: CONFIG.envId });
         return cloudApp;
       }
 
       function ensureCloudReady() {
-        var app = initCloudBase();
+        var app;
+        try {
+          app = initCloudBase();
+        } catch (error) {
+          return Promise.reject(error);
+        }
         if (!app || !app.auth) return Promise.resolve(app);
         var auth = app.auth({ persistence: "local" });
         if (auth.hasLoginState && auth.hasLoginState()) return Promise.resolve(app);
@@ -197,7 +210,7 @@
         recordList.innerHTML = "";
         ensureCloudReady().then(function (app) {
           if (!app) {
-            setStatus("请先在 family.html 里替换 envId 和 familyKey");
+            setStatus("CloudBase初始化失败");
             return null;
           }
           return app.callFunction({
@@ -218,9 +231,15 @@
           }
           renderRecords(records);
           setStatus(records.length ? "共 " + records.length + " 条记录" : "没有记录");
-        }).catch(function () {
-          setStatus("加载失败，请检查 CloudBase 配置和云函数");
+        }).catch(function (error) {
+          setStatus("加载失败：" + getErrorMessage(error));
         });
+      }
+
+      function getErrorMessage(error) {
+        if (!error) return "未知错误";
+        if (typeof error === "string") return error;
+        return error.message || error.errMsg || JSON.stringify(error);
       }
 
       function renderRecords(records) {

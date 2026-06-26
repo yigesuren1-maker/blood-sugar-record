@@ -226,14 +226,27 @@
       var summaryBox = document.getElementById("summaryBox");
       var againBtn = document.getElementById("againBtn");
 
+      function getCloudBaseSdk() {
+        return window.cloudbase || window.tcb || null;
+      }
+
       function initCloudBase() {
-        if (cloudApp || !window.cloudbase || CONFIG.envId.indexOf("请替换") === 0) return cloudApp;
-        cloudApp = window.cloudbase.init({ env: CONFIG.envId });
+        if (cloudApp) return cloudApp;
+        var sdk = getCloudBaseSdk();
+        if (!sdk) {
+          throw new Error("CloudBase SDK未加载，请检查网络或SDK地址");
+        }
+        cloudApp = sdk.init({ env: CONFIG.envId });
         return cloudApp;
       }
 
       function ensureCloudReady() {
-        var app = initCloudBase();
+        var app;
+        try {
+          app = initCloudBase();
+        } catch (error) {
+          return Promise.reject(error);
+        }
         if (!app || !app.auth) return Promise.resolve(app);
         var auth = app.auth({ persistence: "local" });
         if (auth.hasLoginState && auth.hasLoginState()) return Promise.resolve(app);
@@ -587,8 +600,8 @@
           var result = res && res.result ? res.result : {};
           if (result.ok === false) throw new Error(result.message || "上传失败");
           setSyncStatus("已同步到云端", "success");
-        }).catch(function () {
-          setSyncStatus("已本地保存，稍后同步", "fail");
+        }).catch(function (error) {
+          setSyncStatus("已本地保存，上传失败：" + getErrorMessage(error), "fail");
         });
       }
 
@@ -596,6 +609,12 @@
         syncStatus.textContent = text;
         syncStatus.classList.remove("success", "fail");
         if (state) syncStatus.classList.add(state);
+      }
+
+      function getErrorMessage(error) {
+        if (!error) return "未知错误";
+        if (typeof error === "string") return error;
+        return error.message || error.errMsg || JSON.stringify(error);
       }
 
       function renderSummary(record) {
