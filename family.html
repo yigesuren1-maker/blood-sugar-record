@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b6b3a">
+  <title>家属查看</title>
+  <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.10.1/cloudbase.full.js"></script>
+  <style>
+    :root {
+      --bg: #f7f7f2;
+      --text: #111111;
+      --muted: #555555;
+      --green: #0b6b3a;
+      --line: #d0d0d0;
+      --red: #c51616;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    .page {
+      width: min(100%, 960px);
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--green);
+      font-size: clamp(34px, 8vw, 52px);
+      line-height: 1.15;
+    }
+
+    .toolbar,
+    .record {
+      background: var(--white);
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    input,
+    button {
+      min-height: 48px;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    input {
+      width: 100%;
+      border: 2px solid var(--line);
+      padding: 8px 10px;
+      background: var(--white);
+    }
+
+    button {
+      border: 0;
+      padding: 8px 14px;
+      color: var(--white);
+      background: var(--green);
+    }
+
+    button.secondary {
+      color: var(--green);
+      background: var(--white);
+      border: 2px solid var(--green);
+    }
+
+    button.red {
+      color: var(--red);
+      background: var(--white);
+      border: 2px solid var(--red);
+    }
+
+    .status {
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .record {
+      display: grid;
+      gap: 8px;
+    }
+
+    .record-time {
+      color: var(--green);
+      font-size: 26px;
+      font-weight: 900;
+    }
+
+    .row {
+      font-size: 20px;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .row span {
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    @media (min-width: 720px) {
+      .toolbar {
+        grid-template-columns: 1fr auto auto;
+        align-items: end;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>家属查看</h1>
+    <section class="toolbar">
+      <div>
+        <label for="dateFilter">按日期筛选</label>
+        <input id="dateFilter" type="date">
+      </div>
+      <button id="refreshBtn" type="button">刷新</button>
+      <button id="clearFilterBtn" class="secondary" type="button">清除筛选</button>
+    </section>
+    <div id="statusText" class="status">正在加载...</div>
+    <section id="recordList" class="list"></section>
+  </main>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var CONFIG = {
+        envId: "blood-record-d5gbmfz81f4c8595e",
+        elderId: "elder001",
+        familyKey: "family001"
+      };
+
+      var cloudApp = null;
+      var dateFilter = document.getElementById("dateFilter");
+      var refreshBtn = document.getElementById("refreshBtn");
+      var clearFilterBtn = document.getElementById("clearFilterBtn");
+      var statusText = document.getElementById("statusText");
+      var recordList = document.getElementById("recordList");
+
+      function initCloudBase() {
+        if (cloudApp || !window.cloudbase || CONFIG.envId.indexOf("请替换") === 0) return cloudApp;
+        cloudApp = window.cloudbase.init({ env: CONFIG.envId });
+        return cloudApp;
+      }
+
+      function ensureCloudReady() {
+        var app = initCloudBase();
+        if (!app || !app.auth) return Promise.resolve(app);
+        var auth = app.auth({ persistence: "local" });
+        if (auth.hasLoginState && auth.hasLoginState()) return Promise.resolve(app);
+        if (!auth.anonymousAuthProvider) return Promise.resolve(app);
+        return auth.anonymousAuthProvider().signIn().catch(function () {}).then(function () {
+          return app;
+        });
+      }
+
+      function setStatus(text) {
+        statusText.textContent = text;
+      }
+
+      function loadRecords() {
+        setStatus("正在加载...");
+        recordList.innerHTML = "";
+        ensureCloudReady().then(function (app) {
+          if (!app) {
+            setStatus("请先在 family.html 里替换 envId 和 familyKey");
+            return null;
+          }
+          return app.callFunction({
+            name: "listRecords",
+            data: {
+              elderId: CONFIG.elderId,
+              familyKey: CONFIG.familyKey,
+              recordDate: dateFilter.value || ""
+            }
+          });
+        }).then(function (res) {
+          if (!res) return;
+          var result = res.result || {};
+          var records = result.records || [];
+          if (result.ok === false) {
+            setStatus(result.message || "加载失败");
+            return;
+          }
+          renderRecords(records);
+          setStatus(records.length ? "共 " + records.length + " 条记录" : "没有记录");
+        }).catch(function () {
+          setStatus("加载失败，请检查 CloudBase 配置和云函数");
+        });
+      }
+
+      function renderRecords(records) {
+        recordList.innerHTML = "";
+        records.forEach(function (record) {
+          var item = document.createElement("article");
+          item.className = "record";
+          item.innerHTML =
+            '<div class="record-time">日期：' + escapeHtml(record.recordDate || "") + "</div>" +
+            row("记录时间", record.recordTime) +
+            row("吃药时间", record.medicineTime) +
+            row("药物", record.medicineName) +
+            row("测糖时间", record.bloodSugarTime) +
+            row("饭前/饭后", record.mealRelation) +
+            row("血糖", record.bloodSugarValue) +
+            row("高压", record.systolicPressure) +
+            row("低压", record.diastolicPressure) +
+            row("不舒服情况", record.symptoms);
+          recordList.appendChild(item);
+        });
+      }
+
+      function row(label, value) {
+        return '<div class="row"><span>' + escapeHtml(label) + '：</span>' + escapeHtml(value || "未记录") + "</div>";
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      refreshBtn.addEventListener("click", loadRecords);
+      clearFilterBtn.addEventListener("click", function () {
+        dateFilter.value = "";
+        loadRecords();
+      });
+      dateFilter.addEventListener("change", loadRecords);
+      window.addEventListener("load", loadRecords);
+    })();
+  </script>
+</body>
+</html>

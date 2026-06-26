@@ -12,6 +12,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.png">
+  <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.10.1/cloudbase.full.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -20,7 +21,7 @@
       --muted: #4b4b4b;
       --green: #0b6b3a;
       --green-dark: #084e2b;
-      --line: #cfcfcf;
+      --line: #d0d0d0;
       --red: #c51616;
       --white: #ffffff;
     }
@@ -94,20 +95,6 @@
       box-shadow: 0 3px 0 var(--green-dark);
     }
 
-    .history-entry {
-      position: fixed;
-      right: max(12px, env(safe-area-inset-right));
-      bottom: max(12px, env(safe-area-inset-bottom));
-      min-height: 44px;
-      border: 2px solid var(--line);
-      border-radius: 8px;
-      padding: 8px 12px;
-      background: var(--white);
-      color: var(--muted);
-      font-size: 18px;
-      font-weight: 800;
-    }
-
     .question {
       color: var(--green-dark);
       font-size: clamp(48px, 15vw, 88px);
@@ -124,6 +111,21 @@
     }
 
     .status.error {
+      color: var(--red);
+    }
+
+    .sync-status {
+      color: var(--muted);
+      font-size: clamp(30px, 8vw, 46px);
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .sync-status.success {
+      color: var(--green-dark);
+    }
+
+    .sync-status.fail {
       color: var(--red);
     }
 
@@ -162,103 +164,12 @@
       font-weight: 900;
       touch-action: manipulation;
     }
-
-    .big-button.secondary {
-      color: var(--green-dark);
-      background: var(--white);
-      border: 4px solid var(--green);
-      box-shadow: none;
-    }
-
-    .big-button.red {
-      background: var(--red);
-      box-shadow: 0 6px 0 #7d0e0e;
-    }
-
-    .actions,
-    .history-actions {
-      display: grid;
-      gap: 18px;
-    }
-
-    .history-screen {
-      gap: 18px;
-    }
-
-    h1 {
-      margin: 0;
-      color: var(--green-dark);
-      font-size: clamp(36px, 10vw, 56px);
-      line-height: 1.12;
-      font-weight: 900;
-      text-align: center;
-      letter-spacing: 0;
-    }
-
-    .history-list {
-      display: grid;
-      gap: 18px;
-    }
-
-    .day,
-    .record {
-      background: var(--white);
-      border: 4px solid var(--line);
-      border-radius: 8px;
-      padding: 18px;
-    }
-
-    .day h2 {
-      margin: 0;
-      color: var(--green-dark);
-      font-size: clamp(32px, 9vw, 48px);
-      line-height: 1.15;
-    }
-
-    .record {
-      display: grid;
-      gap: 10px;
-      margin-top: 14px;
-      border-width: 3px;
-    }
-
-    .record-main {
-      font-size: clamp(30px, 8vw, 44px);
-      font-weight: 900;
-    }
-
-    .record-row {
-      color: var(--text);
-      font-size: clamp(24px, 6.5vw, 34px);
-      font-weight: 800;
-      word-break: break-word;
-    }
-
-    .delete-button {
-      min-height: 76px;
-      border: 4px solid var(--red);
-      border-radius: 8px;
-      color: var(--red);
-      background: var(--white);
-      font-size: clamp(26px, 7vw, 36px);
-      font-weight: 900;
-    }
-
-    .empty {
-      margin: auto 0;
-      padding: 34px 8px;
-      color: var(--muted);
-      text-align: center;
-      font-size: clamp(34px, 10vw, 56px);
-      font-weight: 900;
-    }
   </style>
 </head>
 <body>
   <main class="app">
     <section id="homeScreen" class="screen center active" aria-label="首页">
       <button id="startBtn" class="start-button" type="button">开始记录</button>
-      <button id="historyEntry" class="history-entry" type="button">查看历史</button>
     </section>
 
     <section id="questionScreen" class="screen center" aria-label="语音问答">
@@ -267,21 +178,10 @@
     </section>
 
     <section id="completeScreen" class="screen center" aria-label="记录完成">
-      <div class="status">已完成记录</div>
+      <div id="completeText" class="status">已完成记录</div>
+      <div id="syncStatus" class="sync-status">正在同步到云端</div>
       <div id="summaryBox" class="summary"></div>
-      <div class="actions">
-        <button id="againBtn" class="big-button" type="button">再记录一次</button>
-        <button id="historyBtn" class="big-button secondary" type="button">查看历史</button>
-      </div>
-    </section>
-
-    <section id="historyScreen" class="screen history-screen" aria-label="历史记录">
-      <h1>历史记录</h1>
-      <div id="historyList" class="history-list"></div>
-      <div class="history-actions">
-        <button id="backBtn" class="big-button secondary" type="button">返回首页</button>
-        <button id="clearBtn" class="big-button red" type="button">清空全部记录</button>
-      </div>
+      <button id="againBtn" class="big-button" type="button">再记录一次</button>
     </section>
   </main>
 
@@ -289,17 +189,23 @@
     (function () {
       "use strict";
 
-      var STORAGE_KEY = "healthVoiceRecords.iphonePwa.v1";
+      var CONFIG = {
+        envId: "blood-record-d5gbmfz81f4c8595e",
+        elderId: "elder001",
+        familyKey: "family001"
+      };
+
+      var LOCAL_STORAGE_KEY = "healthVoiceRecords.cloudbase.v1";
       var LISTEN_TIMEOUT_MS = 8000;
       var RETRY_DELAY_MS = 1200;
       var questions = [
-        { key: "medicineTime", label: "吃药时间", prompt: "几点吃的药？" },
-        { key: "medicineName", label: "药物", prompt: "吃的什么药？" },
-        { key: "bloodSugarTime", label: "测糖时间", prompt: "几点测的血糖？" },
-        { key: "mealRelation", label: "饭前/饭后", prompt: "血糖是饭前还是饭后测的？" },
-        { key: "bloodSugarValue", label: "血糖", prompt: "血糖是多少？" },
-        { key: "bloodPressureValue", label: "血压", prompt: "血压是多少？" },
-        { key: "symptoms", label: "不舒服", prompt: "今天有没有不舒服？" }
+        { key: "medicineTime", prompt: "几点吃的药？" },
+        { key: "medicineName", prompt: "吃的什么药？" },
+        { key: "bloodSugarTime", prompt: "几点测的血糖？" },
+        { key: "mealRelation", prompt: "血糖是饭前还是饭后测的？" },
+        { key: "bloodSugarValue", prompt: "血糖是多少？" },
+        { key: "bloodPressureValue", prompt: "请说血压，高压多少，低压多少？" },
+        { key: "symptoms", prompt: "今天有没有不舒服？" }
       ];
 
       var session = null;
@@ -307,27 +213,40 @@
       var listenTimer = null;
       var retryTimer = null;
       var recognitionDone = false;
+      var cloudApp = null;
 
       var homeScreen = document.getElementById("homeScreen");
       var questionScreen = document.getElementById("questionScreen");
       var completeScreen = document.getElementById("completeScreen");
-      var historyScreen = document.getElementById("historyScreen");
       var startBtn = document.getElementById("startBtn");
-      var historyEntry = document.getElementById("historyEntry");
       var questionText = document.getElementById("questionText");
       var statusText = document.getElementById("statusText");
+      var completeText = document.getElementById("completeText");
+      var syncStatus = document.getElementById("syncStatus");
       var summaryBox = document.getElementById("summaryBox");
       var againBtn = document.getElementById("againBtn");
-      var historyBtn = document.getElementById("historyBtn");
-      var historyList = document.getElementById("historyList");
-      var backBtn = document.getElementById("backBtn");
-      var clearBtn = document.getElementById("clearBtn");
+
+      function initCloudBase() {
+        if (cloudApp || !window.cloudbase || CONFIG.envId.indexOf("请替换") === 0) return cloudApp;
+        cloudApp = window.cloudbase.init({ env: CONFIG.envId });
+        return cloudApp;
+      }
+
+      function ensureCloudReady() {
+        var app = initCloudBase();
+        if (!app || !app.auth) return Promise.resolve(app);
+        var auth = app.auth({ persistence: "local" });
+        if (auth.hasLoginState && auth.hasLoginState()) return Promise.resolve(app);
+        if (!auth.anonymousAuthProvider) return Promise.resolve(app);
+        return auth.anonymousAuthProvider().signIn().catch(function () {}).then(function () {
+          return app;
+        });
+      }
 
       function showScreen(name) {
         homeScreen.classList.toggle("active", name === "home");
         questionScreen.classList.toggle("active", name === "question");
         completeScreen.classList.toggle("active", name === "complete");
-        historyScreen.classList.toggle("active", name === "history");
         window.scrollTo(0, 0);
       }
 
@@ -343,17 +262,22 @@
         return two(date.getHours()) + ":" + two(date.getMinutes());
       }
 
-      function getRecords() {
+      function getLocalRecords() {
         try {
-          var records = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          var records = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || "[]");
           return Array.isArray(records) ? records : [];
         } catch (error) {
           return [];
         }
       }
 
-      function saveRecords(records) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+      function saveLocalRecord(record) {
+        var records = getLocalRecords();
+        records.push(record);
+        records.sort(function (a, b) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(records));
       }
 
       function clearTimers() {
@@ -392,10 +316,9 @@
       function chooseChineseVoice() {
         if (!("speechSynthesis" in window)) return null;
         var voices = window.speechSynthesis.getVoices() || [];
-        var preferred = voices.find(function (voice) {
+        return voices.find(function (voice) {
           return /zh-CN/i.test(voice.lang) || /Chinese|Mandarin|普通话|中文/i.test(voice.name);
-        });
-        return preferred || voices.find(function (voice) {
+        }) || voices.find(function (voice) {
           return /^zh/i.test(voice.lang);
         }) || null;
       }
@@ -420,7 +343,7 @@
           if (finished) return;
           finished = true;
           done();
-        }, Math.max(2500, text.length * 600));
+        }, Math.max(2600, text.length * 650));
 
         utterance.onend = function () {
           if (finished) return;
@@ -566,10 +489,45 @@
       function saveAnswer(text) {
         if (!session || session.index >= questions.length) return;
         var question = questions[session.index];
-        session.answers[question.key] = text || "未记录";
         session.answersRaw[question.key] = text || "未记录";
+
+        if (question.key === "bloodPressureValue") {
+          var pressure = parseBloodPressure(text);
+          session.answers.systolicPressure = pressure.systolicPressure;
+          session.answers.diastolicPressure = pressure.diastolicPressure;
+          session.answers.bloodPressureValue = pressure.systolicPressure + "/" + pressure.diastolicPressure;
+        } else {
+          session.answers[question.key] = text || "未记录";
+        }
+
         session.index += 1;
         askCurrentQuestion();
+      }
+
+      function normalizeNumberText(text) {
+        return String(text || "")
+          .replace(/一百/g, "100")
+          .replace(/一/g, "1")
+          .replace(/二/g, "2")
+          .replace(/两/g, "2")
+          .replace(/三/g, "3")
+          .replace(/四/g, "4")
+          .replace(/五/g, "5")
+          .replace(/六/g, "6")
+          .replace(/七/g, "7")
+          .replace(/八/g, "8")
+          .replace(/九/g, "9")
+          .replace(/零/g, "0")
+          .replace(/点/g, ".");
+      }
+
+      function parseBloodPressure(text) {
+        var normalized = normalizeNumberText(text);
+        var numbers = normalized.match(/\d+(?:\.\d+)?/g) || [];
+        return {
+          systolicPressure: numbers[0] || "未记录",
+          diastolicPressure: numbers[1] || "未记录"
+        };
       }
 
       function finishSession() {
@@ -580,7 +538,8 @@
         var answers = session.answers;
         var raw = session.answersRaw;
         var record = {
-          id: String(Date.now()) + "-" + Math.random().toString(16).slice(2),
+          elderId: CONFIG.elderId,
+          familyKey: CONFIG.familyKey,
           recordDate: formatDate(now),
           recordTime: formatTime(now),
           medicineTime: answers.medicineTime || "未记录",
@@ -588,7 +547,8 @@
           bloodSugarTime: answers.bloodSugarTime || "未记录",
           mealRelation: answers.mealRelation || "未记录",
           bloodSugarValue: answers.bloodSugarValue || "未记录",
-          bloodPressureValue: answers.bloodPressureValue || "未记录",
+          systolicPressure: answers.systolicPressure || "未记录",
+          diastolicPressure: answers.diastolicPressure || "未记录",
           symptoms: answers.symptoms || "未记录",
           answersRaw: {
             medicineTime: raw.medicineTime || "未记录",
@@ -599,18 +559,43 @@
             bloodPressureValue: raw.bloodPressureValue || "未记录",
             symptoms: raw.symptoms || "未记录"
           },
-          createdAt: now.toISOString()
+          createdAt: now.toISOString(),
+          createdAtMs: now.getTime(),
+          uploadStatus: "pending"
         };
 
-        var records = getRecords();
-        records.push(record);
-        records.sort(function (a, b) {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-        saveRecords(records);
+        saveLocalRecord(record);
         session = null;
         renderSummary(record);
+        setSyncStatus("正在同步到云端", "");
         showScreen("complete");
+        uploadRecord(record);
+      }
+
+      function uploadRecord(record) {
+        ensureCloudReady().then(function (app) {
+          if (!app) throw new Error("CloudBase未初始化");
+          return app.callFunction({
+            name: "addRecord",
+            data: {
+              elderId: CONFIG.elderId,
+              familyKey: CONFIG.familyKey,
+              record: record
+            }
+          });
+        }).then(function (res) {
+          var result = res && res.result ? res.result : {};
+          if (result.ok === false) throw new Error(result.message || "上传失败");
+          setSyncStatus("已同步到云端", "success");
+        }).catch(function () {
+          setSyncStatus("已本地保存，稍后同步", "fail");
+        });
+      }
+
+      function setSyncStatus(text, state) {
+        syncStatus.textContent = text;
+        syncStatus.classList.remove("success", "fail");
+        if (state) syncStatus.classList.add(state);
       }
 
       function renderSummary(record) {
@@ -621,7 +606,8 @@
           ["测糖时间", record.bloodSugarTime],
           ["饭前/饭后", record.mealRelation],
           ["血糖", record.bloodSugarValue],
-          ["血压", record.bloodPressureValue],
+          ["高压", record.systolicPressure],
+          ["低压", record.diastolicPressure],
           ["不舒服", record.symptoms]
         ].forEach(function (item) {
           var row = document.createElement("div");
@@ -640,108 +626,8 @@
           .replace(/'/g, "&#039;");
       }
 
-      function renderHistory() {
-        var records = getRecords();
-        historyList.innerHTML = "";
-        if (!records.length) {
-          historyList.innerHTML = '<div class="empty">还没有记录</div>';
-          return;
-        }
-
-        var groups = {};
-        records.forEach(function (record) {
-          var date = record.recordDate || record.date || "未记录日期";
-          if (!groups[date]) groups[date] = [];
-          groups[date].push(record);
-        });
-
-        Object.keys(groups).sort().reverse().forEach(function (date) {
-          var day = document.createElement("div");
-          day.className = "day";
-          var title = document.createElement("h2");
-          title.textContent = date;
-          day.appendChild(title);
-
-          groups[date].sort(function (a, b) {
-            return String(b.recordTime || b.time || "").localeCompare(String(a.recordTime || a.time || ""));
-          }).forEach(function (record) {
-            day.appendChild(createHistoryItem(record));
-          });
-
-          historyList.appendChild(day);
-        });
-      }
-
-      function createHistoryItem(record) {
-        var item = document.createElement("div");
-        item.className = "record";
-
-        var main = document.createElement("div");
-        main.className = "record-main";
-        main.textContent = "记录时间：" + (record.recordTime || record.time || "未记录");
-        item.appendChild(main);
-
-        [
-          ["吃药时间", record.medicineTime],
-          ["药物", record.medicineName],
-          ["测糖时间", record.bloodSugarTime],
-          ["饭前/饭后", record.mealRelation],
-          ["血糖", record.bloodSugarValue],
-          ["血压", record.bloodPressureValue],
-          ["不舒服", record.symptoms]
-        ].forEach(function (rowData) {
-          var row = document.createElement("div");
-          row.className = "record-row";
-          row.textContent = rowData[0] + "：" + (rowData[1] || "未记录");
-          item.appendChild(row);
-        });
-
-        var del = document.createElement("button");
-        del.className = "delete-button";
-        del.type = "button";
-        del.textContent = "删除这条";
-        del.addEventListener("click", function () {
-          deleteRecord(record.id);
-        });
-        item.appendChild(del);
-
-        return item;
-      }
-
-      function deleteRecord(id) {
-        saveRecords(getRecords().filter(function (record) {
-          return record.id !== id;
-        }));
-        renderHistory();
-      }
-
-      function clearAll() {
-        if (!getRecords().length) return;
-        if (!window.confirm("确定清空全部记录吗？")) return;
-        saveRecords([]);
-        renderHistory();
-      }
-
       startBtn.addEventListener("click", startSession);
       againBtn.addEventListener("click", startSession);
-      historyBtn.addEventListener("click", function () {
-        session = null;
-        stopAllAudioWork();
-        renderHistory();
-        showScreen("history");
-      });
-      historyEntry.addEventListener("click", function () {
-        session = null;
-        stopAllAudioWork();
-        renderHistory();
-        showScreen("history");
-      });
-      backBtn.addEventListener("click", function () {
-        session = null;
-        stopAllAudioWork();
-        showScreen("home");
-      });
-      clearBtn.addEventListener("click", clearAll);
 
       if ("speechSynthesis" in window) {
         window.speechSynthesis.onvoiceschanged = chooseChineseVoice;

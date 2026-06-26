@@ -1,7 +1,8 @@
-const CACHE_NAME = "blood-sugar-iphone-pwa-v3";
+const CACHE_NAME = "blood-sugar-cloudbase-postgres-v2";
 const APP_FILES = [
   "./",
   "./index.html",
+  "./family.html",
   "./manifest.json",
   "./service-worker.js",
   "./icon.png",
