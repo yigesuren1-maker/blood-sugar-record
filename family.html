@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b6b3a">
   <title>家属查看</title>
-  <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.10.1/cloudbase.full.js"></script>
   <style>
     :root {
       --bg: #f7f7f2;
@@ -161,45 +160,15 @@
       var CONFIG = {
         envId: "blood-record-d5gbmfz81f4c8595e",
         elderId: "elder001",
-        familyKey: "family001"
+        familyKey: "family001",
+        listRecordsUrl: "https://blood-record-d5gbmfz81f4c8595e-1447357496.ap-shanghai.app.tcloudbase.com/listRecords"
       };
 
-      var cloudApp = null;
       var dateFilter = document.getElementById("dateFilter");
       var refreshBtn = document.getElementById("refreshBtn");
       var clearFilterBtn = document.getElementById("clearFilterBtn");
       var statusText = document.getElementById("statusText");
       var recordList = document.getElementById("recordList");
-
-      function getCloudBaseSdk() {
-        return window.cloudbase || window.tcb || null;
-      }
-
-      function initCloudBase() {
-        if (cloudApp) return cloudApp;
-        var sdk = getCloudBaseSdk();
-        if (!sdk) {
-          throw new Error("CloudBase SDK未加载，请检查网络或SDK地址");
-        }
-        cloudApp = sdk.init({ env: CONFIG.envId });
-        return cloudApp;
-      }
-
-      function ensureCloudReady() {
-        var app;
-        try {
-          app = initCloudBase();
-        } catch (error) {
-          return Promise.reject(error);
-        }
-        if (!app || !app.auth) return Promise.resolve(app);
-        var auth = app.auth({ persistence: "local" });
-        if (auth.hasLoginState && auth.hasLoginState()) return Promise.resolve(app);
-        if (!auth.anonymousAuthProvider) return Promise.resolve(app);
-        return auth.anonymousAuthProvider().signIn().catch(function () {}).then(function () {
-          return app;
-        });
-      }
 
       function setStatus(text) {
         statusText.textContent = text;
@@ -208,22 +177,25 @@
       function loadRecords() {
         setStatus("正在加载...");
         recordList.innerHTML = "";
-        ensureCloudReady().then(function (app) {
-          if (!app) {
-            setStatus("CloudBase初始化失败");
-            return null;
+        fetch(CONFIG.listRecordsUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            elderId: CONFIG.elderId,
+            familyKey: CONFIG.familyKey,
+            recordDate: dateFilter.value || ""
+          })
+        }).then(function (response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status + " " + response.statusText);
           }
-          return app.callFunction({
-            name: "listRecords",
-            data: {
-              elderId: CONFIG.elderId,
-              familyKey: CONFIG.familyKey,
-              recordDate: dateFilter.value || ""
-            }
+          return response.json().catch(function () {
+            throw new Error("HTTP返回不是JSON");
           });
         }).then(function (res) {
-          if (!res) return;
-          var result = res.result || {};
+          var result = unwrapFunctionResult(res);
           var records = result.records || [];
           if (result.ok === false) {
             setStatus(result.message || "加载失败");
@@ -234,6 +206,18 @@
         }).catch(function (error) {
           setStatus("加载失败：" + getErrorMessage(error));
         });
+      }
+
+      function unwrapFunctionResult(res) {
+        if (!res) return {};
+        if (typeof res.body === "string") {
+          try {
+            return JSON.parse(res.body);
+          } catch (error) {
+            return {};
+          }
+        }
+        return res.result || res;
       }
 
       function getErrorMessage(error) {

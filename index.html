@@ -12,7 +12,6 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.png">
-  <script src="https://static.cloudbase.net/cloudbase-js-sdk/2.10.1/cloudbase.full.js"></script>
   <style>
     :root {
       color-scheme: light;
@@ -192,7 +191,8 @@
       var CONFIG = {
         envId: "blood-record-d5gbmfz81f4c8595e",
         elderId: "elder001",
-        familyKey: "family001"
+        familyKey: "family001",
+        addRecordUrl: "https://blood-record-d5gbmfz81f4c8595e-1447357496.ap-shanghai.app.tcloudbase.com/addRecord"
       };
 
       var LOCAL_STORAGE_KEY = "healthVoiceRecords.cloudbase.v1";
@@ -213,8 +213,6 @@
       var listenTimer = null;
       var retryTimer = null;
       var recognitionDone = false;
-      var cloudApp = null;
-
       var homeScreen = document.getElementById("homeScreen");
       var questionScreen = document.getElementById("questionScreen");
       var completeScreen = document.getElementById("completeScreen");
@@ -225,36 +223,6 @@
       var syncStatus = document.getElementById("syncStatus");
       var summaryBox = document.getElementById("summaryBox");
       var againBtn = document.getElementById("againBtn");
-
-      function getCloudBaseSdk() {
-        return window.cloudbase || window.tcb || null;
-      }
-
-      function initCloudBase() {
-        if (cloudApp) return cloudApp;
-        var sdk = getCloudBaseSdk();
-        if (!sdk) {
-          throw new Error("CloudBase SDK未加载，请检查网络或SDK地址");
-        }
-        cloudApp = sdk.init({ env: CONFIG.envId });
-        return cloudApp;
-      }
-
-      function ensureCloudReady() {
-        var app;
-        try {
-          app = initCloudBase();
-        } catch (error) {
-          return Promise.reject(error);
-        }
-        if (!app || !app.auth) return Promise.resolve(app);
-        var auth = app.auth({ persistence: "local" });
-        if (auth.hasLoginState && auth.hasLoginState()) return Promise.resolve(app);
-        if (!auth.anonymousAuthProvider) return Promise.resolve(app);
-        return auth.anonymousAuthProvider().signIn().catch(function () {}).then(function () {
-          return app;
-        });
-      }
 
       function showScreen(name) {
         homeScreen.classList.toggle("active", name === "home");
@@ -586,23 +554,42 @@
       }
 
       function uploadRecord(record) {
-        ensureCloudReady().then(function (app) {
-          if (!app) throw new Error("CloudBase未初始化");
-          return app.callFunction({
-            name: "addRecord",
-            data: {
-              elderId: CONFIG.elderId,
-              familyKey: CONFIG.familyKey,
-              record: record
-            }
+        fetch(CONFIG.addRecordUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            elderId: CONFIG.elderId,
+            familyKey: CONFIG.familyKey,
+            record: record
+          })
+        }).then(function (response) {
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status + " " + response.statusText);
+          }
+          return response.json().catch(function () {
+            throw new Error("HTTP返回不是JSON");
           });
         }).then(function (res) {
-          var result = res && res.result ? res.result : {};
+          var result = unwrapFunctionResult(res);
           if (result.ok === false) throw new Error(result.message || "上传失败");
           setSyncStatus("已同步到云端", "success");
         }).catch(function (error) {
           setSyncStatus("已本地保存，上传失败：" + getErrorMessage(error), "fail");
         });
+      }
+
+      function unwrapFunctionResult(res) {
+        if (!res) return {};
+        if (typeof res.body === "string") {
+          try {
+            return JSON.parse(res.body);
+          } catch (error) {
+            return {};
+          }
+        }
+        return res.result || res;
       }
 
       function setSyncStatus(text, state) {
