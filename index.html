@@ -72,16 +72,51 @@
       text-align: center;
     }
 
+    .home-screen {
+      gap: 22px;
+    }
+
+    .home-header {
+      padding: 18px;
+      border-radius: 8px;
+      background: var(--green);
+      color: var(--white);
+      border: 4px solid var(--green-dark);
+    }
+
+    .home-title {
+      margin: 0;
+      font-size: clamp(46px, 13vw, 76px);
+      line-height: 1.08;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .home-subtitle {
+      margin-top: 10px;
+      font-size: clamp(24px, 7vw, 38px);
+      line-height: 1.22;
+      font-weight: 900;
+    }
+
+    .home-date {
+      margin-top: 14px;
+      font-size: clamp(22px, 6vw, 32px);
+      line-height: 1.2;
+      font-weight: 900;
+      color: #eef8ee;
+    }
+
     .start-button {
       width: 100%;
-      min-height: 78vh;
+      min-height: 112px;
       border: 0;
       border-radius: 10px;
-      padding: 28px 20px;
+      padding: 22px 18px;
       background: var(--green);
       color: var(--white);
       box-shadow: 0 9px 0 var(--green-dark);
-      font-size: clamp(56px, 17vw, 96px);
+      font-size: clamp(36px, 10vw, 58px);
       line-height: 1.14;
       font-weight: 900;
       letter-spacing: 0;
@@ -170,8 +205,124 @@
       width: 100%;
     }
 
-    .start-button {
-      min-height: 56vh;
+    .feature-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .health-card {
+      display: grid;
+      gap: 16px;
+      padding: 20px;
+      border-radius: 8px;
+      border: 4px solid var(--line);
+      background: var(--white);
+      box-shadow: 0 6px 0 rgba(8, 78, 43, 0.16);
+    }
+
+    .health-card.record-card {
+      border-color: #f0b8b8;
+      background: #fff7f7;
+    }
+
+    .health-card.recipe-card-home {
+      border-color: #b7d7a8;
+      background: #f7fff4;
+    }
+
+    .health-card-top {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .home-illustration {
+      width: 112px;
+      height: 112px;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      border: 4px solid currentColor;
+      font-size: 62px;
+      background: var(--white);
+    }
+
+    .record-card .home-illustration {
+      color: #b31321;
+      background: #ffe9e9;
+    }
+
+    .recipe-card-home .home-illustration {
+      color: var(--green-dark);
+      background: #ecf8df;
+    }
+
+    .feature-title {
+      color: var(--text);
+      font-size: clamp(34px, 10vw, 56px);
+      line-height: 1.1;
+      font-weight: 900;
+    }
+
+    .feature-desc {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: clamp(23px, 6.5vw, 34px);
+      line-height: 1.25;
+      font-weight: 900;
+    }
+
+    .recipe-button {
+      background: #c85f14;
+      box-shadow: 0 6px 0 #7a3509;
+    }
+
+    .more-panel {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 8px;
+      border: 4px solid var(--line);
+      background: var(--white);
+    }
+
+    .more-title {
+      color: var(--green-dark);
+      font-size: clamp(28px, 8vw, 42px);
+      line-height: 1.15;
+      font-weight: 900;
+    }
+
+    .more-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .more-item {
+      display: grid;
+      gap: 6px;
+      min-height: 112px;
+      padding: 14px;
+      border-radius: 8px;
+      border: 3px solid var(--line);
+      background: #fafafa;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .more-item strong {
+      font-size: clamp(23px, 6vw, 34px);
+      line-height: 1.15;
+      font-weight: 900;
+    }
+
+    .more-item span {
+      color: var(--muted);
+      font-size: clamp(18px, 5vw, 26px);
+      line-height: 1.2;
+      font-weight: 800;
     }
 
     .recipe-preview,
@@ -312,12 +463,58 @@
 </head>
 <body>
   <main class="app">
-    <section id="homeScreen" class="screen center active" aria-label="首页">
-      <div class="home-actions">
-        <button id="startBtn" class="start-button" type="button">开始记录</button>
-        <button id="recipeBtn" class="big-button" type="button">今日食谱</button>
-        <div id="todayRecipePreview" class="recipe-preview">今日食谱推荐</div>
+    <section id="homeScreen" class="screen home-screen active" aria-label="首页">
+      <header class="home-header">
+        <h1 class="home-title">血糖记录</h1>
+        <div class="home-subtitle">语音记录血压、血糖和用药</div>
+        <div id="homeTodayDate" class="home-date">今日</div>
+      </header>
+
+      <div class="feature-grid">
+        <section class="health-card record-card" aria-label="血糖记录">
+          <div class="health-card-top">
+            <div class="home-illustration" aria-hidden="true">🩸</div>
+            <div>
+              <div class="feature-title">血糖记录</div>
+              <div class="feature-desc">点一下，说血压、血糖和用药</div>
+            </div>
+          </div>
+          <button id="startBtn" class="start-button" type="button">开始记录</button>
+        </section>
+
+        <section class="health-card recipe-card-home" aria-label="今日食谱">
+          <div class="health-card-top">
+            <div class="home-illustration" aria-hidden="true">🍲</div>
+            <div>
+              <div class="feature-title">今日食谱</div>
+              <div id="todayRecipePreview" class="feature-desc">推荐适合控糖的家常饭菜</div>
+            </div>
+          </div>
+          <button id="recipeBtn" class="big-button recipe-button" type="button">查看食谱</button>
+        </section>
       </div>
+
+      <section class="more-panel" aria-label="更多功能">
+        <div class="more-title">更多功能</div>
+        <div class="more-grid">
+          <div class="more-item">
+            <strong>睡眠监测</strong>
+            <span>暂未开放</span>
+          </div>
+          <div class="more-item">
+            <strong>用药提醒</strong>
+            <span>暂未开放</span>
+          </div>
+          <a class="more-item" href="family.html">
+            <strong>历史记录</strong>
+            <span>查看记录</span>
+          </a>
+          <a class="more-item" href="family.html">
+            <strong>家属查看</strong>
+            <span>远程查看</span>
+          </a>
+        </div>
+      </section>
     </section>
 
     <section id="questionScreen" class="screen center" aria-label="语音问答">
@@ -552,6 +749,7 @@
       var syncStatus = document.getElementById("syncStatus");
       var summaryBox = document.getElementById("summaryBox");
       var againBtn = document.getElementById("againBtn");
+      var homeTodayDate = document.getElementById("homeTodayDate");
       var todayRecipePreview = document.getElementById("todayRecipePreview");
       var recipeTitle = document.getElementById("recipeTitle");
       var recipeList = document.getElementById("recipeList");
@@ -587,6 +785,12 @@
 
       function formatTime(date) {
         return two(date.getHours()) + ":" + two(date.getMinutes());
+      }
+
+      function renderHomeDate() {
+        var now = new Date();
+        var week = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][now.getDay()];
+        homeTodayDate.textContent = now.getFullYear() + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日  " + week;
       }
 
       function getLocalRecords() {
@@ -1192,7 +1396,7 @@
 
       function renderRecipePreview() {
         var recipe = getTodayRecipe();
-        todayRecipePreview.textContent = "今日食谱推荐：" + recipe.breakfast[0].name + "、" + recipe.lunch[0].name + "、" + recipe.dinner[0].name;
+        todayRecipePreview.textContent = "推荐适合控糖的家常饭菜：" + recipe.breakfast[0].name + "、" + recipe.lunch[0].name + "、" + recipe.dinner[0].name;
       }
 
       function showTodayRecipe() {
@@ -1306,6 +1510,7 @@
         showScreen("home");
       });
 
+      renderHomeDate();
       renderRecipePreview();
 
       if ("speechSynthesis" in window) {
