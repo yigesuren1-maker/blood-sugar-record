@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -227,6 +227,10 @@
       gap: 14px;
       align-items: center;
       padding: 14px;
+      width: 100%;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
     }
 
     .food-art {
@@ -260,6 +264,50 @@
       gap: 18px;
       margin-top: 18px;
     }
+
+    .dish-detail-hero,
+    .detail-block {
+      background: var(--white);
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .dish-detail-hero {
+      display: grid;
+      gap: 16px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .detail-art {
+      width: 148px;
+      height: 148px;
+      font-size: 78px;
+    }
+
+    .detail-block {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .detail-text,
+    .detail-list {
+      color: var(--text);
+      font-size: clamp(27px, 7vw, 40px);
+      line-height: 1.35;
+      font-weight: 900;
+    }
+
+    .detail-list {
+      margin: 0;
+      padding-left: 1.35em;
+    }
+
+    .detail-list li {
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -288,8 +336,32 @@
       <div id="recipeTitle" class="recipe-title">今日食谱推荐</div>
       <div id="recipeList" class="recipe-list"></div>
       <div class="recipe-actions">
-        <button id="rereadRecipeBtn" class="big-button" type="button">重新朗读</button>
         <button id="backHomeBtn" class="big-button" type="button">返回首页</button>
+      </div>
+    </section>
+
+    <section id="dishScreen" class="screen" aria-label="菜品详情">
+      <div id="dishDetailTitle" class="recipe-title">菜品详情</div>
+      <div class="dish-detail-hero">
+        <div id="dishDetailIcon" class="food-art detail-art">🍽️</div>
+        <div id="dishDetailNote" class="dish-note"></div>
+      </div>
+      <div class="detail-block">
+        <div class="meal-title">食材</div>
+        <div id="dishIngredients" class="detail-text"></div>
+      </div>
+      <div class="detail-block">
+        <div class="meal-title">做法步骤</div>
+        <ol id="dishSteps" class="detail-list"></ol>
+      </div>
+      <div class="detail-block">
+        <div class="meal-title">降糖注意事项</div>
+        <div id="dishTips" class="detail-text"></div>
+      </div>
+      <div class="recipe-actions">
+        <button id="readDishBtn" class="big-button" type="button">朗读做法</button>
+        <button id="backRecipeBtn" class="big-button" type="button">返回食谱</button>
+        <button id="dishHomeBtn" class="big-button" type="button">返回首页</button>
       </div>
     </section>
   </main>
@@ -471,6 +543,7 @@
       var questionScreen = document.getElementById("questionScreen");
       var completeScreen = document.getElementById("completeScreen");
       var recipeScreen = document.getElementById("recipeScreen");
+      var dishScreen = document.getElementById("dishScreen");
       var startBtn = document.getElementById("startBtn");
       var recipeBtn = document.getElementById("recipeBtn");
       var questionText = document.getElementById("questionText");
@@ -482,14 +555,25 @@
       var todayRecipePreview = document.getElementById("todayRecipePreview");
       var recipeTitle = document.getElementById("recipeTitle");
       var recipeList = document.getElementById("recipeList");
-      var rereadRecipeBtn = document.getElementById("rereadRecipeBtn");
       var backHomeBtn = document.getElementById("backHomeBtn");
+      var dishDetailTitle = document.getElementById("dishDetailTitle");
+      var dishDetailIcon = document.getElementById("dishDetailIcon");
+      var dishDetailNote = document.getElementById("dishDetailNote");
+      var dishIngredients = document.getElementById("dishIngredients");
+      var dishSteps = document.getElementById("dishSteps");
+      var dishTips = document.getElementById("dishTips");
+      var readDishBtn = document.getElementById("readDishBtn");
+      var backRecipeBtn = document.getElementById("backRecipeBtn");
+      var dishHomeBtn = document.getElementById("dishHomeBtn");
+      var currentRecipe = null;
+      var currentDish = null;
 
       function showScreen(name) {
         homeScreen.classList.toggle("active", name === "home");
         questionScreen.classList.toggle("active", name === "question");
         completeScreen.classList.toggle("active", name === "complete");
         recipeScreen.classList.toggle("active", name === "recipe");
+        dishScreen.classList.toggle("active", name === "dish");
         window.scrollTo(0, 0);
       }
 
@@ -1057,8 +1141,39 @@
         return {
           name: name,
           note: note,
-          icon: icon
+          icon: icon,
+          ingredients: getDefaultIngredients(name),
+          steps: getDefaultSteps(name),
+          tips: "少油少盐，不放糖。主食要定量，蔬菜可以多一些，按平时医嘱用药。"
         };
+      }
+
+      function getDefaultIngredients(name) {
+        if (/鱼|鲈鱼/.test(name)) return "鱼一小份、姜丝、葱、少量酱油。";
+        if (/鸡|鸡胸|鸡腿/.test(name)) return "去皮鸡肉一小份、青菜、姜片、少量盐。";
+        if (/豆腐|豆干|豆浆|豆腐脑/.test(name)) return "豆腐或豆制品一小份、青菜、葱花、少量盐。";
+        if (/蛋|鸡蛋/.test(name)) return "鸡蛋一个、番茄或绿叶菜、少量植物油。";
+        if (/粥|饭|馒头|窝头|玉米|红薯|南瓜|杂粮/.test(name)) return "主食一小份、搭配鸡蛋或豆制品、绿叶菜。";
+        if (/汤/.test(name)) return "新鲜蔬菜、少量瘦肉或豆腐、清水、少量盐。";
+        if (/木耳|菠菜|白菜|油麦菜|小白菜|莴笋|西兰花|冬瓜|黄瓜|番茄|芹菜|苦瓜|生菜|茄子|丝瓜|青菜|蔬菜/.test(name)) return "新鲜蔬菜一盘、蒜末少量、植物油少量、盐少量。";
+        if (/杏仁|毛豆|梨|苹果|坚果/.test(name)) return "加餐一小份，按血糖情况少量食用。";
+        return "新鲜食材一小份、绿叶菜、少量植物油、少量盐。";
+      }
+
+      function getDefaultSteps(name) {
+        if (/凉拌|拌/.test(name)) {
+          return ["食材洗净，能焯水的先焯水。", "放少量盐和少量油拌匀。", "不要加糖，主食另外定量。"];
+        }
+        if (/清蒸|蒸/.test(name)) {
+          return ["食材洗净处理好。", "上锅清蒸到熟透。", "出锅后少量调味，不要放糖。"];
+        }
+        if (/汤|炖/.test(name)) {
+          return ["食材洗净切好。", "加清水煮熟或炖熟。", "最后少盐调味，少喝油汤。"];
+        }
+        if (/粥|饭|馒头|窝头|玉米|红薯|南瓜|杂粮/.test(name)) {
+          return ["按一小份准备主食。", "搭配蔬菜和优质蛋白一起吃。", "吃完观察血糖，不要再额外加甜食。"];
+        }
+        return ["食材洗净切好。", "锅里少放油，炒熟或煮熟。", "少盐调味，不放糖，趁温热食用。"];
       }
 
       function getTodayRecipe() {
@@ -1082,10 +1197,9 @@
 
       function showTodayRecipe() {
         stopAllAudioWork();
-        var recipe = getTodayRecipe();
-        renderRecipe(recipe);
+        currentRecipe = getTodayRecipe();
+        renderRecipe(currentRecipe);
         showScreen("recipe");
-        speakRecipe(recipe);
       }
 
       function renderRecipe(recipe) {
@@ -1111,8 +1225,13 @@
       }
 
       function createDishCard(item) {
-        var card = document.createElement("article");
+        var card = document.createElement("button");
         card.className = "recipe-card";
+        card.type = "button";
+        card.setAttribute("aria-label", "查看" + item.name + "做法");
+        card.addEventListener("click", function () {
+          showDishDetail(item);
+        });
 
         var art = document.createElement("div");
         art.className = "food-art";
@@ -1133,16 +1252,28 @@
         return card;
       }
 
-      function speakRecipe(recipe) {
-        var text = "今日食谱。早餐可以选" + recipe.breakfast.map(getDishName).join("、") +
-          "。午餐可以选" + recipe.lunch.map(getDishName).join("、") +
-          "。晚餐可以选" + recipe.dinner.map(getDishName).join("、") +
-          "。加餐可以选" + recipe.snack.map(getDishName).join("、") + "。";
-        speakPrompt(text, function () {});
+      function showDishDetail(item) {
+        stopAllAudioWork();
+        currentDish = item;
+        dishDetailTitle.textContent = item.name;
+        dishDetailIcon.textContent = item.icon;
+        dishDetailNote.textContent = item.note;
+        dishIngredients.textContent = item.ingredients || "未记录";
+        dishTips.textContent = item.tips || "少油少盐，主食定量。";
+        dishSteps.innerHTML = "";
+        (item.steps || []).forEach(function (step) {
+          var li = document.createElement("li");
+          li.textContent = step;
+          dishSteps.appendChild(li);
+        });
+        showScreen("dish");
       }
 
-      function getDishName(item) {
-        return item.name;
+      function speakDish(item) {
+        var text = item.name + "。食材：" + (item.ingredients || "按家常少量准备") +
+          "。做法：" + (item.steps || []).join("。") +
+          "。注意少油少盐，主食定量。";
+        speakPrompt(text, function () {});
       }
 
       function escapeHtml(value) {
@@ -1157,10 +1288,20 @@
       startBtn.addEventListener("click", startSession);
       againBtn.addEventListener("click", startSession);
       recipeBtn.addEventListener("click", showTodayRecipe);
-      rereadRecipeBtn.addEventListener("click", function () {
-        speakRecipe(getTodayRecipe());
-      });
       backHomeBtn.addEventListener("click", function () {
+        stopAllAudioWork();
+        showScreen("home");
+      });
+      readDishBtn.addEventListener("click", function () {
+        if (currentDish) speakDish(currentDish);
+      });
+      backRecipeBtn.addEventListener("click", function () {
+        stopAllAudioWork();
+        if (!currentRecipe) currentRecipe = getTodayRecipe();
+        renderRecipe(currentRecipe);
+        showScreen("recipe");
+      });
+      dishHomeBtn.addEventListener("click", function () {
         stopAllAudioWork();
         showScreen("home");
       });
