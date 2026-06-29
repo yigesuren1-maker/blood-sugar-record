@@ -172,8 +172,8 @@
     </section>
 
     <section id="questionScreen" class="screen center" aria-label="语音问答">
-      <div id="questionText" class="question">几点吃的药？</div>
-      <div id="statusText" class="status">请回答</div>
+      <div id="questionText" class="question">正在听，请说血糖</div>
+      <div id="statusText" class="status"></div>
     </section>
 
     <section id="completeScreen" class="screen center" aria-label="记录完成">
@@ -197,21 +197,9 @@
 
       var LOCAL_STORAGE_KEY = "healthVoiceRecords.supabase.v1";
       var LISTEN_TIMEOUT_MS = 8000;
-      var RETRY_DELAY_MS = 1200;
-      var questions = [
-        { key: "medicineTime", prompt: "几点吃的药？" },
-        { key: "medicineName", prompt: "吃的什么药？" },
-        { key: "bloodSugarTime", prompt: "几点测的血糖？" },
-        { key: "mealRelation", prompt: "血糖是饭前还是饭后测的？" },
-        { key: "bloodSugarValue", prompt: "血糖是多少？" },
-        { key: "bloodPressureValue", prompt: "请说血压，高压多少，低压多少？" },
-        { key: "symptoms", prompt: "今天有没有不舒服？" }
-      ];
-
-      var session = null;
+      var sessionActive = false;
       var activeRecognition = null;
       var listenTimer = null;
-      var retryTimer = null;
       var recognitionDone = false;
       var homeScreen = document.getElementById("homeScreen");
       var questionScreen = document.getElementById("questionScreen");
@@ -266,10 +254,6 @@
           window.clearTimeout(listenTimer);
           listenTimer = null;
         }
-        if (retryTimer) {
-          window.clearTimeout(retryTimer);
-          retryTimer = null;
-        }
       }
 
       function stopRecognition() {
@@ -294,85 +278,14 @@
         }
       }
 
-      function chooseChineseVoice() {
-        if (!("speechSynthesis" in window)) return null;
-        var voices = window.speechSynthesis.getVoices() || [];
-        return voices.find(function (voice) {
-          return /zh-CN/i.test(voice.lang) || /Chinese|Mandarin|普通话|中文/i.test(voice.name);
-        }) || voices.find(function (voice) {
-          return /^zh/i.test(voice.lang);
-        }) || null;
-      }
-
-      function speak(text, done) {
-        if (!("speechSynthesis" in window)) {
-          window.setTimeout(done, 300);
-          return;
-        }
-
-        window.speechSynthesis.cancel();
-        var utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = "zh-CN";
-        utterance.rate = 0.75;
-        utterance.volume = 1;
-        utterance.pitch = 1;
-        var voice = chooseChineseVoice();
-        if (voice) utterance.voice = voice;
-
-        var finished = false;
-        var fallback = window.setTimeout(function () {
-          if (finished) return;
-          finished = true;
-          done();
-        }, Math.max(2600, text.length * 650));
-
-        utterance.onend = function () {
-          if (finished) return;
-          finished = true;
-          window.clearTimeout(fallback);
-          done();
-        };
-        utterance.onerror = function () {
-          if (finished) return;
-          finished = true;
-          window.clearTimeout(fallback);
-          done();
-        };
-        window.speechSynthesis.speak(utterance);
-      }
-
       function startSession() {
         stopAllAudioWork();
-        session = {
-          index: 0,
-          answers: {},
-          answersRaw: {},
-          failures: {}
-        };
+        sessionActive = true;
         showScreen("question");
-        askCurrentQuestion();
-      }
-
-      function askCurrentQuestion() {
-        if (!session) return;
-        if (session.index >= questions.length) {
-          finishSession();
-          return;
-        }
-
-        var question = questions[session.index];
-        clearTimers();
-        stopRecognition();
-        questionText.textContent = question.prompt;
+        questionText.textContent = "正在听，请说血糖";
         statusText.textContent = "";
         statusText.classList.remove("error");
-        showScreen("question");
-
-        speak(question.prompt, function () {
-          if (!session || session.index >= questions.length) return;
-          statusText.textContent = "请回答";
-          startListeningForAnswer();
-        });
+        startListeningForAnswer();
       }
 
       function getRecognitionConstructor() {
@@ -417,7 +330,7 @@
           }
 
           activeRecognition = null;
-          saveAnswer(String(text).trim());
+          finishSingleSpeech(String(text).trim());
         };
 
         recognition.onerror = function () {
@@ -440,49 +353,18 @@
       }
 
       function handleNoAnswer() {
-        if (!session || session.index >= questions.length) return;
+        if (!sessionActive) return;
         clearTimers();
         stopRecognition();
-
-        var question = questions[session.index];
-        var failCount = (session.failures[question.key] || 0) + 1;
-        session.failures[question.key] = failCount;
 
         statusText.textContent = "没听清，请再说一遍";
         statusText.classList.add("error");
         showScreen("question");
-
-        if (failCount >= 2) {
-          session.answers[question.key] = "未记录";
-          session.answersRaw[question.key] = "未记录";
-          retryTimer = window.setTimeout(function () {
-            session.index += 1;
-            askCurrentQuestion();
-          }, RETRY_DELAY_MS);
-          return;
-        }
-
-        retryTimer = window.setTimeout(function () {
-          askCurrentQuestion();
-        }, RETRY_DELAY_MS);
-      }
-
-      function saveAnswer(text) {
-        if (!session || session.index >= questions.length) return;
-        var question = questions[session.index];
-        session.answersRaw[question.key] = text || "未记录";
-
-        if (question.key === "bloodPressureValue") {
-          var pressure = parseBloodPressure(text);
-          session.answers.systolicPressure = pressure.systolicPressure;
-          session.answers.diastolicPressure = pressure.diastolicPressure;
-          session.answers.bloodPressureValue = pressure.systolicPressure + "/" + pressure.diastolicPressure;
-        } else {
-          session.answers[question.key] = text || "未记录";
-        }
-
-        session.index += 1;
-        askCurrentQuestion();
+        window.setTimeout(function () {
+          if (!sessionActive) return;
+          sessionActive = false;
+          showScreen("home");
+        }, 1600);
       }
 
       function normalizeNumberText(text) {
@@ -511,34 +393,29 @@
         };
       }
 
-      function finishSession() {
-        if (!session) return;
+      function finishSingleSpeech(rawText) {
+        if (!sessionActive) return;
         stopAllAudioWork();
 
         var now = new Date();
-        var answers = session.answers;
-        var raw = session.answersRaw;
+        var normalizedText = dedupeRecognizedText(rawText);
+        var sugarValue = parseNumericValue(normalizedText);
+        var period = parsePeriod(normalizedText);
         var record = {
           elderId: CONFIG.elderId,
           family_key: CONFIG.family_key,
           recordDate: formatDate(now),
           recordTime: formatTime(now),
-          medicineTime: answers.medicineTime || "未记录",
-          medicineName: answers.medicineName || "未记录",
-          bloodSugarTime: answers.bloodSugarTime || "未记录",
-          mealRelation: answers.mealRelation || "未记录",
-          bloodSugarValue: answers.bloodSugarValue || "未记录",
-          systolicPressure: answers.systolicPressure || "未记录",
-          diastolicPressure: answers.diastolicPressure || "未记录",
-          symptoms: answers.symptoms || "未记录",
+          medicineTime: "未记录",
+          medicineName: "未记录",
+          bloodSugarTime: "未记录",
+          mealRelation: period,
+          bloodSugarValue: sugarValue === null ? "未记录" : String(sugarValue),
+          systolicPressure: "未记录",
+          diastolicPressure: "未记录",
+          symptoms: "未记录",
           answersRaw: {
-            medicineTime: raw.medicineTime || "未记录",
-            medicineName: raw.medicineName || "未记录",
-            bloodSugarTime: raw.bloodSugarTime || "未记录",
-            mealRelation: raw.mealRelation || "未记录",
-            bloodSugarValue: raw.bloodSugarValue || "未记录",
-            bloodPressureValue: raw.bloodPressureValue || "未记录",
-            symptoms: raw.symptoms || "未记录"
+            voiceText: normalizedText || "未记录"
           },
           createdAt: now.toISOString(),
           createdAtMs: now.getTime(),
@@ -546,11 +423,38 @@
         };
 
         saveLocalRecord(record);
-        session = null;
+        sessionActive = false;
         renderSummary(record);
         setSyncStatus("正在同步到云端", "");
         showScreen("complete");
         uploadRecord(record);
+      }
+
+      function dedupeRecognizedText(text) {
+        var value = String(text || "").replace(/\s+/g, "").trim();
+        if (!value) return "";
+        if (value.length % 2 === 0) {
+          var half = value.length / 2;
+          if (value.slice(0, half) === value.slice(half)) return value.slice(0, half);
+        }
+        var best = value;
+        for (var size = 3; size <= Math.floor(value.length / 2); size += 1) {
+          var part = value.slice(0, size);
+          if (part && value === part.repeat(Math.floor(value.length / size)) && value.length % size === 0) {
+            best = part;
+            break;
+          }
+        }
+        return best;
+      }
+
+      function parsePeriod(text) {
+        var value = String(text || "");
+        if (/空腹/.test(value)) return "空腹";
+        if (/饭前|餐前/.test(value)) return "饭前";
+        if (/饭后|餐后/.test(value)) return "饭后";
+        if (/睡前/.test(value)) return "睡前";
+        return "随机";
       }
 
       function uploadRecord(record) {
@@ -591,7 +495,7 @@
         return {
           family_key: CONFIG.family_key,
           value: sugarValue,
-          period: record.mealRelation || "未记录",
+          period: record.mealRelation || "随机",
           note: JSON.stringify({
             elderId: record.elderId,
             recordDate: record.recordDate,
@@ -601,9 +505,7 @@
             bloodSugarTime: record.bloodSugarTime,
             mealRelation: record.mealRelation,
             bloodSugarValue: record.bloodSugarValue,
-            systolicPressure: record.systolicPressure,
-            diastolicPressure: record.diastolicPressure,
-            symptoms: record.symptoms,
+            voiceText: record.answersRaw && record.answersRaw.voiceText,
             answersRaw: record.answersRaw
           }),
           created_at: record.createdAt
@@ -666,11 +568,9 @@
           ["吃药时间", record.medicineTime],
           ["药物", record.medicineName],
           ["测糖时间", record.bloodSugarTime],
-          ["饭前/饭后", record.mealRelation],
+          ["时段", record.mealRelation],
           ["血糖", record.bloodSugarValue],
-          ["高压", record.systolicPressure],
-          ["低压", record.diastolicPressure],
-          ["不舒服", record.symptoms]
+          ["原始语音", record.answersRaw && record.answersRaw.voiceText]
         ].forEach(function (item) {
           var row = document.createElement("div");
           row.className = "summary-row";
@@ -690,10 +590,6 @@
 
       startBtn.addEventListener("click", startSession);
       againBtn.addEventListener("click", startSession);
-
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.onvoiceschanged = chooseChineseVoice;
-      }
 
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
