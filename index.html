@@ -197,6 +197,8 @@
 
       var LOCAL_STORAGE_KEY = "healthVoiceRecords.supabase.v1";
       var LISTEN_TIMEOUT_MS = 8000;
+      var RECOGNITION_START_DELAY_MS = 800;
+      var RECOGNITION_RETRY_DELAY_MS = 500;
       var steps = [
         { key: "bloodPressure", prompt: "请说血压，高压多少，低压多少" },
         { key: "bloodSugar", prompt: "请说血糖，饭前还是饭后，血糖值多少" },
@@ -287,7 +289,8 @@
         stopAllAudioWork();
         session = {
           index: 0,
-          answers: {}
+          answers: {},
+          failures: {}
         };
         showScreen("question");
         runCurrentStep();
@@ -307,7 +310,9 @@
         statusText.classList.remove("error");
         showScreen("question");
         speakPrompt(step.prompt, function () {
-          listenForStep(step);
+          window.setTimeout(function () {
+            listenForStep(step, false);
+          }, RECOGNITION_START_DELAY_MS);
         });
       }
 
@@ -359,7 +364,7 @@
         }) || null;
       }
 
-      function listenForStep(step) {
+      function listenForStep(step, isStartRetry) {
         var Recognition = getRecognitionConstructor();
         if (!Recognition) {
           handleStepNoAnswer(step);
@@ -372,18 +377,36 @@
 
         var recognition = new Recognition();
         activeRecognition = recognition;
+        var listenStarted = false;
         recognition.lang = "zh-CN";
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
         recognition.continuous = false;
 
-        listenTimer = window.setTimeout(function () {
-          handleStepNoAnswer(step);
-        }, LISTEN_TIMEOUT_MS);
+        var startCheckTimer = window.setTimeout(function () {
+          if (listenStarted || recognitionDone || isStartRetry) return;
+          try {
+            recognition.abort();
+          } catch (error) {}
+          activeRecognition = null;
+          window.setTimeout(function () {
+            if (!session) return;
+            listenForStep(step, true);
+          }, RECOGNITION_RETRY_DELAY_MS);
+        }, RECOGNITION_RETRY_DELAY_MS);
+
+        recognition.onstart = function () {
+          listenStarted = true;
+          window.clearTimeout(startCheckTimer);
+          listenTimer = window.setTimeout(function () {
+            handleStepNoAnswer(step);
+          }, LISTEN_TIMEOUT_MS);
+        };
 
         recognition.onresult = function (event) {
           if (recognitionDone) return;
           recognitionDone = true;
+          window.clearTimeout(startCheckTimer);
           clearTimers();
 
           var text = "";
@@ -403,18 +426,45 @@
         recognition.onerror = function () {
           if (recognitionDone) return;
           recognitionDone = true;
+          window.clearTimeout(startCheckTimer);
+          if (!listenStarted && !isStartRetry) {
+            activeRecognition = null;
+            window.setTimeout(function () {
+              if (!session) return;
+              listenForStep(step, true);
+            }, RECOGNITION_RETRY_DELAY_MS);
+            return;
+          }
           handleStepNoAnswer(step);
         };
 
         recognition.onend = function () {
           if (recognitionDone) return;
           recognitionDone = true;
+          window.clearTimeout(startCheckTimer);
+          if (!listenStarted && !isStartRetry) {
+            activeRecognition = null;
+            window.setTimeout(function () {
+              if (!session) return;
+              listenForStep(step, true);
+            }, RECOGNITION_RETRY_DELAY_MS);
+            return;
+          }
           handleStepNoAnswer(step);
         };
 
         try {
           recognition.start();
         } catch (error) {
+          window.clearTimeout(startCheckTimer);
+          if (!isStartRetry) {
+            activeRecognition = null;
+            window.setTimeout(function () {
+              if (!session) return;
+              listenForStep(step, true);
+            }, RECOGNITION_RETRY_DELAY_MS);
+            return;
+          }
           handleStepNoAnswer(step);
         }
       }
@@ -424,11 +474,20 @@
         clearTimers();
         stopRecognition();
 
+        var failCount = (session.failures[step.key] || 0) + 1;
+        session.failures[step.key] = failCount;
         statusText.textContent = "没听清";
         statusText.classList.add("error");
         showScreen("question");
         speakPrompt("没听清", function () {
           if (!session) return;
+          if (failCount < 2) {
+            window.setTimeout(function () {
+              if (!session) return;
+              listenForStep(step, false);
+            }, RECOGNITION_START_DELAY_MS);
+            return;
+          }
           session.answers[step.key] = "未记录";
           session.index += 1;
           runCurrentStep();
