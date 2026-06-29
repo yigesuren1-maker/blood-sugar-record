@@ -554,6 +554,11 @@
       }
 
       function uploadRecord(record) {
+        var sugarValue = parseNumericValue(record.bloodSugarValue);
+        if (sugarValue === null) {
+          setSyncStatus("血糖值未识别，已本地保存，未同步云端", "fail");
+          return;
+        }
         var payload = cleanPayload(toSupabaseRecord(record));
         console.log("supabase add health_records payload", payload);
         fetch(CONFIG.supabaseUrl + "/rest/v1/health_records", {
@@ -582,9 +587,10 @@
       }
 
       function toSupabaseRecord(record) {
+        var sugarValue = parseNumericValue(record.bloodSugarValue);
         return {
           family_key: CONFIG.family_key,
-          value: record.bloodSugarValue || "未记录",
+          value: sugarValue,
           period: record.mealRelation || "未记录",
           note: JSON.stringify({
             elderId: record.elderId,
@@ -602,6 +608,27 @@
           }),
           created_at: record.createdAt
         };
+      }
+
+      function parseNumericValue(value) {
+        var text = String(value || "")
+          .replace(/点/g, ".")
+          .replace(/零/g, "0")
+          .replace(/一/g, "1")
+          .replace(/二/g, "2")
+          .replace(/两/g, "2")
+          .replace(/三/g, "3")
+          .replace(/四/g, "4")
+          .replace(/五/g, "5")
+          .replace(/六/g, "6")
+          .replace(/七/g, "7")
+          .replace(/八/g, "8")
+          .replace(/九/g, "9");
+        var match = text.match(/\d+(?:\.\d+)?/);
+        if (!match) return null;
+        var number = Number(match[0]);
+        if (!Number.isFinite(number)) return null;
+        return number;
       }
 
       function cleanPayload(value) {
