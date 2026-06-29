@@ -241,14 +241,12 @@
             id: row.id,
             recordDate: note.recordDate || formatDateFromIso(row.created_at),
             recordTime: note.recordTime || formatTimeFromIso(row.created_at),
-            medicineTime: note.medicineTime || "未记录",
             medicineName: note.medicineName || "未记录",
-            bloodSugarTime: note.bloodSugarTime || "未记录",
+            medicineCount: note.medicineCount || "未记录",
             mealRelation: note.mealRelation || row.period || "未记录",
             bloodSugarValue: note.bloodSugarValue || row.value || "未记录",
             systolicPressure: note.systolicPressure || "未记录",
             diastolicPressure: note.diastolicPressure || "未记录",
-            symptoms: note.symptoms || "未记录",
             createdAt: row.created_at
           };
         });
@@ -303,14 +301,12 @@
           item.innerHTML =
             '<div class="record-time">日期：' + escapeHtml(record.recordDate || "") + "</div>" +
             row("记录时间", record.recordTime) +
-            row("吃药时间", record.medicineTime) +
-            row("药物", record.medicineName) +
-            row("测糖时间", record.bloodSugarTime) +
-            row("饭前/饭后", record.mealRelation) +
-            row("血糖", record.bloodSugarValue) +
             row("高压", record.systolicPressure) +
             row("低压", record.diastolicPressure) +
-            row("不舒服情况", record.symptoms);
+            row("饭前/饭后", record.mealRelation) +
+            row("血糖", record.bloodSugarValue) +
+            row("降糖药", record.medicineName) +
+            row("吃了几片", record.medicineCount);
           recordList.appendChild(item);
         });
       }
