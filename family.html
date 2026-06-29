@@ -158,10 +158,10 @@
       "use strict";
 
       var CONFIG = {
-        envId: "blood-record-d5gbmfz81f4c8595e",
         elderId: "elder001",
-        familyKey: "family001",
-        listRecordsUrl: "https://blood-record-d5gbmfz81f4c8595e-1447357496.ap-shanghai.app.tcloudbase.com/listRecords"
+        family_key: "family001",
+        supabaseUrl: "https://xnkxxlcacgmpbmnkajmj.supabase.co",
+        supabaseKey: "sb_publishable_nhxIkOeV3vyxSl2ctH6O8g_b0nz9Rz8"
       };
 
       var dateFilter = document.getElementById("dateFilter");
@@ -177,32 +177,29 @@
       function loadRecords() {
         setStatus("正在加载...");
         recordList.innerHTML = "";
-        fetch(CONFIG.listRecordsUrl, {
-          method: "POST",
+        var url = CONFIG.supabaseUrl + "/rest/v1/health_records"
+          + "?family_key=eq." + encodeURIComponent(CONFIG.family_key)
+          + "&select=id,family_key,value,period,note,created_at"
+          + "&order=created_at.desc";
+        console.log("supabase list health_records url", url);
+        fetch(url, {
+          method: "GET",
           headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            elderId: CONFIG.elderId,
-            familyKey: CONFIG.familyKey,
-            recordDate: dateFilter.value || ""
-          })
+            "apikey": CONFIG.supabaseKey,
+            "Authorization": "Bearer " + CONFIG.supabaseKey
+          }
         }).then(function (response) {
           if (!response.ok) {
-            throw new Error("HTTP " + response.status + " " + response.statusText);
+            return response.text().then(function (text) {
+              throw new Error("HTTP " + response.status + " " + response.statusText + " " + text);
+            });
           }
-          return response.json().catch(function () {
-            throw new Error("HTTP返回不是JSON");
-          });
+          return response.json();
         }).then(function (res) {
-          var result = unwrapFunctionResult(res);
-          var records = result.records || [];
-          if (result.ok === false) {
-            setStatus(result.message || "加载失败");
-            return;
-          }
-          renderRecords(records);
-          setStatus(records.length ? "共 " + records.length + " 条记录" : "没有记录");
+          var records = normalizeSupabaseRecords(res || []);
+          var filtered = filterByDate(records, dateFilter.value);
+          renderRecords(filtered);
+          setStatus(filtered.length ? "共 " + filtered.length + " 条记录" : "没有记录");
         }).catch(function (error) {
           setStatus("加载失败：" + getErrorMessage(error));
         });
@@ -218,6 +215,78 @@
           }
         }
         return res.result || res;
+      }
+
+      function cleanPayload(value) {
+        if (Array.isArray(value)) {
+          return value.map(cleanPayload).filter(function (item) {
+            return item !== undefined && item !== null;
+          });
+        }
+        if (value && typeof value === "object") {
+          var output = {};
+          Object.keys(value).forEach(function (key) {
+            var item = cleanPayload(value[key]);
+            if (item !== undefined && item !== null) output[key] = item;
+          });
+          return output;
+        }
+        return value;
+      }
+
+      function normalizeSupabaseRecords(rows) {
+        return rows.map(function (row) {
+          var note = parseNote(row.note);
+          return {
+            id: row.id,
+            recordDate: note.recordDate || formatDateFromIso(row.created_at),
+            recordTime: note.recordTime || formatTimeFromIso(row.created_at),
+            medicineTime: note.medicineTime || "未记录",
+            medicineName: note.medicineName || "未记录",
+            bloodSugarTime: note.bloodSugarTime || "未记录",
+            mealRelation: note.mealRelation || row.period || "未记录",
+            bloodSugarValue: note.bloodSugarValue || row.value || "未记录",
+            systolicPressure: note.systolicPressure || "未记录",
+            diastolicPressure: note.diastolicPressure || "未记录",
+            symptoms: note.symptoms || "未记录",
+            createdAt: row.created_at
+          };
+        });
+      }
+
+      function parseNote(note) {
+        if (!note) return {};
+        if (typeof note === "object") return note;
+        try {
+          return JSON.parse(note);
+        } catch (error) {
+          return { symptoms: String(note) };
+        }
+      }
+
+      function filterByDate(records, date) {
+        if (!date) return records;
+        return records.filter(function (record) {
+          return record.recordDate === date;
+        });
+      }
+
+      function formatDateFromIso(value) {
+        if (!value) return "";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.getFullYear() + "-" + two(date.getMonth() + 1) + "-" + two(date.getDate());
+      }
+
+      function formatTimeFromIso(value) {
+        if (!value) return "";
+        var date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return two(date.getHours()) + ":" + two(date.getMinutes());
+      }
+
+      function two(value) {
+        return String(value).padStart(2, "0");
       }
 
       function getErrorMessage(error) {

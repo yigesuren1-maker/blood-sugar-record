@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -189,13 +189,13 @@
       "use strict";
 
       var CONFIG = {
-        envId: "blood-record-d5gbmfz81f4c8595e",
         elderId: "elder001",
-        familyKey: "family001",
-        addRecordUrl: "https://blood-record-d5gbmfz81f4c8595e-1447357496.ap-shanghai.app.tcloudbase.com/addRecord"
+        family_key: "family001",
+        supabaseUrl: "https://xnkxxlcacgmpbmnkajmj.supabase.co",
+        supabaseKey: "sb_publishable_nhxIkOeV3vyxSl2ctH6O8g_b0nz9Rz8"
       };
 
-      var LOCAL_STORAGE_KEY = "healthVoiceRecords.cloudbase.v1";
+      var LOCAL_STORAGE_KEY = "healthVoiceRecords.supabase.v1";
       var LISTEN_TIMEOUT_MS = 8000;
       var RETRY_DELAY_MS = 1200;
       var questions = [
@@ -520,7 +520,7 @@
         var raw = session.answersRaw;
         var record = {
           elderId: CONFIG.elderId,
-          familyKey: CONFIG.familyKey,
+          family_key: CONFIG.family_key,
           recordDate: formatDate(now),
           recordTime: formatTime(now),
           medicineTime: answers.medicineTime || "未记录",
@@ -554,42 +554,54 @@
       }
 
       function uploadRecord(record) {
-        fetch(CONFIG.addRecordUrl, {
+        var payload = cleanPayload(toSupabaseRecord(record));
+        console.log("supabase add health_records payload", payload);
+        fetch(CONFIG.supabaseUrl + "/rest/v1/health_records", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "apikey": CONFIG.supabaseKey,
+            "Authorization": "Bearer " + CONFIG.supabaseKey,
+            "Prefer": "return=representation"
           },
-          body: JSON.stringify({
-            elderId: CONFIG.elderId,
-            familyKey: CONFIG.familyKey,
-            record: record
-          })
+          body: JSON.stringify(payload)
         }).then(function (response) {
           if (!response.ok) {
-            throw new Error("HTTP " + response.status + " " + response.statusText);
+            return response.text().then(function (text) {
+              throw new Error("HTTP " + response.status + " " + response.statusText + " " + text);
+            });
           }
           return response.json().catch(function () {
-            throw new Error("HTTP返回不是JSON");
+            return [];
           });
-        }).then(function (res) {
-          var result = unwrapFunctionResult(res);
-          if (result.ok === false) throw new Error(result.message || "上传失败");
+        }).then(function () {
           setSyncStatus("已同步到云端", "success");
         }).catch(function (error) {
           setSyncStatus("已本地保存，上传失败：" + getErrorMessage(error), "fail");
         });
       }
 
-      function unwrapFunctionResult(res) {
-        if (!res) return {};
-        if (typeof res.body === "string") {
-          try {
-            return JSON.parse(res.body);
-          } catch (error) {
-            return {};
-          }
-        }
-        return res.result || res;
+      function toSupabaseRecord(record) {
+        return {
+          family_key: CONFIG.family_key,
+          value: record.bloodSugarValue || "未记录",
+          period: record.mealRelation || "未记录",
+          note: JSON.stringify({
+            elderId: record.elderId,
+            recordDate: record.recordDate,
+            recordTime: record.recordTime,
+            medicineTime: record.medicineTime,
+            medicineName: record.medicineName,
+            bloodSugarTime: record.bloodSugarTime,
+            mealRelation: record.mealRelation,
+            bloodSugarValue: record.bloodSugarValue,
+            systolicPressure: record.systolicPressure,
+            diastolicPressure: record.diastolicPressure,
+            symptoms: record.symptoms,
+            answersRaw: record.answersRaw
+          }),
+          created_at: record.createdAt
+        };
       }
 
       function setSyncStatus(text, state) {
@@ -648,3 +660,4 @@
   </script>
 </body>
 </html>
+
