@@ -575,7 +575,7 @@
             return [];
           });
         }).then(function () {
-          setSyncStatus("已同步到云端", "success");
+          setSyncStatus("云端同步成功", "success");
         }).catch(function (error) {
           setSyncStatus("已本地保存，上传失败：" + getErrorMessage(error), "fail");
         });
@@ -602,6 +602,23 @@
           }),
           created_at: record.createdAt
         };
+      }
+
+      function cleanPayload(value) {
+        if (Array.isArray(value)) {
+          return value.map(cleanPayload).filter(function (item) {
+            return item !== undefined && item !== null;
+          });
+        }
+        if (value && typeof value === "object") {
+          var output = {};
+          Object.keys(value).forEach(function (key) {
+            var item = cleanPayload(value[key]);
+            if (item !== undefined && item !== null) output[key] = item;
+          });
+          return output;
+        }
+        return value;
       }
 
       function setSyncStatus(text, state) {
