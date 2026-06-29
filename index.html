@@ -481,19 +481,27 @@
       color: var(--text);
     }
 
-    .home-header::after {
-      content: "👴🏻👵🏻";
+    .home-family-art {
       position: absolute;
       right: 10px;
       bottom: 8px;
       width: 118px;
       height: 96px;
-      display: grid;
-      place-items: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      white-space: nowrap;
       border-radius: 44% 56% 50% 50%;
       background: rgba(255, 255, 255, 0.54);
       font-size: 56px;
       line-height: 1;
+    }
+
+    .home-family-art span {
+      display: inline-block;
+      line-height: 1;
+      transform: translateY(2px);
     }
 
     .home-title,
@@ -606,6 +614,24 @@
       box-shadow: 0 7px 0 #9a3c05;
     }
 
+    .return-button {
+      min-height: 86px;
+      border: 4px solid var(--green);
+      border-radius: 999px;
+      padding: 16px;
+      background: var(--white);
+      color: var(--green-dark);
+      box-shadow: none;
+      font-size: clamp(28px, 8vw, 44px);
+      line-height: 1.15;
+      font-weight: 900;
+      touch-action: manipulation;
+    }
+
+    .screen-top-action {
+      margin-bottom: 14px;
+    }
+
     .more-panel {
       border: 0;
       border-radius: 24px;
@@ -694,7 +720,7 @@
         padding: 14px 14px;
       }
 
-      .home-header::after {
+      .home-family-art {
         right: 2px;
         width: 96px;
         font-size: 46px;
@@ -729,6 +755,10 @@
         <div class="home-tip">
           <span aria-hidden="true">🔊</span>
           <span>今天也要好好照顾自己哦！</span>
+        </div>
+        <div class="home-family-art" aria-hidden="true">
+          <span>👴🏻</span>
+          <span>👵🏻</span>
         </div>
       </header>
 
@@ -794,6 +824,7 @@
     <section id="questionScreen" class="screen center" aria-label="语音问答">
       <div id="questionText" class="question">正在听，请说血糖</div>
       <div id="statusText" class="status"></div>
+      <button id="questionHomeBtn" class="return-button" type="button">返回首页</button>
     </section>
 
     <section id="completeScreen" class="screen center" aria-label="记录完成">
@@ -801,13 +832,15 @@
       <div id="syncStatus" class="sync-status">正在同步到云端</div>
       <div id="summaryBox" class="summary"></div>
       <button id="againBtn" class="big-button" type="button">再记录一次</button>
+      <button id="completeHomeBtn" class="return-button" type="button">返回首页</button>
     </section>
 
     <section id="recipeScreen" class="screen" aria-label="今日食谱推荐">
+      <button id="recipeTopHomeBtn" class="return-button screen-top-action" type="button">返回首页</button>
       <div id="recipeTitle" class="recipe-title">今日食谱推荐</div>
       <div id="recipeList" class="recipe-list"></div>
       <div class="recipe-actions">
-        <button id="backHomeBtn" class="big-button" type="button">返回首页</button>
+        <button id="backHomeBtn" class="return-button" type="button">返回首页</button>
       </div>
     </section>
 
@@ -1023,10 +1056,13 @@
       var syncStatus = document.getElementById("syncStatus");
       var summaryBox = document.getElementById("summaryBox");
       var againBtn = document.getElementById("againBtn");
+      var questionHomeBtn = document.getElementById("questionHomeBtn");
+      var completeHomeBtn = document.getElementById("completeHomeBtn");
       var homeTodayDate = document.getElementById("homeTodayDate");
       var todayRecipePreview = document.getElementById("todayRecipePreview");
       var recipeTitle = document.getElementById("recipeTitle");
       var recipeList = document.getElementById("recipeList");
+      var recipeTopHomeBtn = document.getElementById("recipeTopHomeBtn");
       var backHomeBtn = document.getElementById("backHomeBtn");
       var dishDetailTitle = document.getElementById("dishDetailTitle");
       var dishDetailIcon = document.getElementById("dishDetailIcon");
@@ -1115,6 +1151,12 @@
         if ("speechSynthesis" in window) {
           window.speechSynthesis.cancel();
         }
+      }
+
+      function returnHome() {
+        stopAllAudioWork();
+        session = null;
+        showScreen("home");
       }
 
       function startSession() {
@@ -1769,10 +1811,10 @@
       startBtn.addEventListener("click", startSession);
       againBtn.addEventListener("click", startSession);
       recipeBtn.addEventListener("click", showTodayRecipe);
-      backHomeBtn.addEventListener("click", function () {
-        stopAllAudioWork();
-        showScreen("home");
-      });
+      questionHomeBtn.addEventListener("click", returnHome);
+      completeHomeBtn.addEventListener("click", returnHome);
+      recipeTopHomeBtn.addEventListener("click", returnHome);
+      backHomeBtn.addEventListener("click", returnHome);
       readDishBtn.addEventListener("click", function () {
         if (currentDish) speakDish(currentDish);
       });
@@ -1782,10 +1824,7 @@
         renderRecipe(currentRecipe);
         showScreen("recipe");
       });
-      dishHomeBtn.addEventListener("click", function () {
-        stopAllAudioWork();
-        showScreen("home");
-      });
+      dishHomeBtn.addEventListener("click", returnHome);
 
       renderHomeDate();
       renderRecipePreview();
