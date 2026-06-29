@@ -163,12 +163,113 @@
       font-weight: 900;
       touch-action: manipulation;
     }
+
+    .home-actions {
+      display: grid;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .start-button {
+      min-height: 56vh;
+    }
+
+    .recipe-preview,
+    .recipe-card,
+    .meal-section {
+      background: var(--white);
+      border: 4px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      text-align: left;
+    }
+
+    .recipe-preview {
+      font-size: clamp(28px, 8vw, 44px);
+      line-height: 1.22;
+      font-weight: 900;
+      color: var(--green-dark);
+    }
+
+    .recipe-title {
+      color: var(--green-dark);
+      font-size: clamp(38px, 11vw, 62px);
+      line-height: 1.12;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .recipe-list {
+      display: grid;
+      gap: 18px;
+    }
+
+    .meal-section {
+      display: grid;
+      gap: 14px;
+    }
+
+    .meal-title {
+      color: var(--green-dark);
+      font-size: clamp(34px, 10vw, 54px);
+      line-height: 1.12;
+      font-weight: 900;
+    }
+
+    .dish-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .recipe-card {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+    }
+
+    .food-art {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #f1f8e9;
+      border: 4px solid #b7d7a8;
+      font-size: 44px;
+    }
+
+    .dish-name {
+      color: var(--text);
+      font-size: clamp(28px, 8vw, 42px);
+      line-height: 1.14;
+      font-weight: 900;
+    }
+
+    .dish-note {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: clamp(22px, 6vw, 32px);
+      line-height: 1.22;
+      font-weight: 800;
+    }
+
+    .recipe-actions {
+      display: grid;
+      gap: 18px;
+      margin-top: 18px;
+    }
   </style>
 </head>
 <body>
   <main class="app">
     <section id="homeScreen" class="screen center active" aria-label="首页">
-      <button id="startBtn" class="start-button" type="button">开始记录</button>
+      <div class="home-actions">
+        <button id="startBtn" class="start-button" type="button">开始记录</button>
+        <button id="recipeBtn" class="big-button" type="button">今日食谱</button>
+        <div id="todayRecipePreview" class="recipe-preview">今日食谱推荐</div>
+      </div>
     </section>
 
     <section id="questionScreen" class="screen center" aria-label="语音问答">
@@ -181,6 +282,15 @@
       <div id="syncStatus" class="sync-status">正在同步到云端</div>
       <div id="summaryBox" class="summary"></div>
       <button id="againBtn" class="big-button" type="button">再记录一次</button>
+    </section>
+
+    <section id="recipeScreen" class="screen" aria-label="今日食谱推荐">
+      <div id="recipeTitle" class="recipe-title">今日食谱推荐</div>
+      <div id="recipeList" class="recipe-list"></div>
+      <div class="recipe-actions">
+        <button id="rereadRecipeBtn" class="big-button" type="button">重新朗读</button>
+        <button id="backHomeBtn" class="big-button" type="button">返回首页</button>
+      </div>
     </section>
   </main>
 
@@ -204,6 +314,155 @@
         { key: "bloodSugar", prompt: "请说血糖，饭前还是饭后，血糖值多少" },
         { key: "medicine", prompt: "请说降糖药，药名和吃了几片" }
       ];
+      var weeklyRecipes = [
+        {
+          breakfast: [
+            dish("鸡蛋青菜粥", "半碗粥，配鸡蛋和青菜，主食定量。", "🥣"),
+            dish("豆腐脑", "少卤少盐，不加糖，配一小份主食。", "🍲"),
+            dish("杂粮馒头", "小半个到一个，配拌黄瓜和鸡蛋。", "🍞")
+          ],
+          lunch: [
+            dish("清蒸鱼", "少油清蒸，搭配绿叶菜。", "🐟"),
+            dish("白菜豆腐", "清淡炖煮，豆腐补充蛋白。", "🥬"),
+            dish("炒油麦菜", "少油快炒，口味清淡。", "🥗")
+          ],
+          dinner: [
+            dish("冬瓜汤", "清淡少盐，晚餐更轻松。", "🍵"),
+            dish("番茄鸡蛋", "少油少盐，配少量主食。", "🍅"),
+            dish("凉拌木耳", "少油少糖，增加蔬菜。", "🍄")
+          ],
+          snack: [
+            dish("黄瓜条", "饿了少量吃，清爽不甜。", "🥒"),
+            dish("无糖豆浆", "一小杯，不加糖。", "🥛")
+          ]
+        },
+        {
+          breakfast: [
+            dish("玉米小半根", "主食定量，配煮鸡蛋。", "🌽"),
+            dish("鸡蛋羹", "嫩滑易吃，少盐少油。", "🥚"),
+            dish("拌菠菜", "焯水后凉拌，少油。", "🥬")
+          ],
+          lunch: [
+            dish("鸡胸肉炒芹菜", "少油快炒，蛋白足。", "🍗"),
+            dish("萝卜炖豆腐", "清淡家常，适合午餐。", "🍲"),
+            dish("小米杂粮饭", "小半碗，搭配蔬菜。", "🍚")
+          ],
+          dinner: [
+            dish("紫菜蛋花汤", "清淡少盐，晚餐配菜。", "🍵"),
+            dish("蒸茄子", "少油蒜泥调味。", "🍆"),
+            dish("清炒生菜", "少油少盐，多蔬菜。", "🥬")
+          ],
+          snack: [
+            dish("番茄", "一个小番茄或半个大番茄。", "🍅"),
+            dish("核桃仁", "少量几颗，不多吃。", "🌰")
+          ]
+        },
+        {
+          breakfast: [
+            dish("荞麦面小碗", "面量少，配青菜和鸡蛋。", "🍜"),
+            dish("水煮蛋", "配青菜，主食不多。", "🥚"),
+            dish("拌海带丝", "少盐少油，清爽开胃。", "🌿")
+          ],
+          lunch: [
+            dish("瘦肉炒莴笋", "少油，肉量适中。", "🥩"),
+            dish("香菇青菜", "家常清炒，多蔬菜。", "🍄"),
+            dish("红薯小块", "代替部分主食，控制量。", "🍠")
+          ],
+          dinner: [
+            dish("丝瓜豆腐汤", "清淡汤菜，晚餐合适。", "🍵"),
+            dish("凉拌苦瓜", "少油不加糖。", "🥒"),
+            dish("清蒸鸡蛋", "软嫩易消化。", "🥚")
+          ],
+          snack: [
+            dish("芹菜段", "清淡爽口，少蘸料。", "🥬"),
+            dish("原味花生", "少量，不油炸。", "🥜")
+          ]
+        },
+        {
+          breakfast: [
+            dish("杂粮粥", "小半碗，配鸡蛋和青菜。", "🥣"),
+            dish("清炒白菜", "早餐配菜，少油。", "🥬"),
+            dish("豆干", "少量补充蛋白。", "🫘")
+          ],
+          lunch: [
+            dish("虾仁西兰花", "少油快炒，蛋白和蔬菜都有。", "🦐"),
+            dish("番茄豆腐汤", "清淡酸甜来自番茄。", "🍅"),
+            dish("糙米饭小半碗", "主食定量，不添饭。", "🍚")
+          ],
+          dinner: [
+            dish("白菜粉丝少量", "粉丝少放，多放白菜。", "🍲"),
+            dish("蒜蓉空心菜", "少油少盐。", "🥬"),
+            dish("清蒸鱼块", "晚餐少量优质蛋白。", "🐟")
+          ],
+          snack: [
+            dish("小苹果半个", "血糖稳定时少量。", "🍎"),
+            dish("无糖酸奶", "小杯，选择无糖。", "🥛")
+          ]
+        },
+        {
+          breakfast: [
+            dish("全麦小馒头", "一个小个，配蛋白质。", "🍞"),
+            dish("卤水豆腐", "少盐，配青菜。", "🫘"),
+            dish("拌西红柿", "不加糖，清爽。", "🍅")
+          ],
+          lunch: [
+            dish("牛肉炖萝卜", "瘦牛肉少量，萝卜多。", "🥩"),
+            dish("清炒菜花", "少油，脆嫩家常。", "🥦"),
+            dish("杂粮饭小半碗", "主食控制量。", "🍚")
+          ],
+          dinner: [
+            dish("木耳炒鸡蛋", "少油，营养家常。", "🍄"),
+            dish("冬瓜虾皮汤", "虾皮少放，避免太咸。", "🍵"),
+            dish("凉拌生菜", "少油醋拌。", "🥬")
+          ],
+          snack: [
+            dish("胡萝卜条", "少量生吃或焯熟。", "🥕"),
+            dish("南瓜小块", "少量，代替主食。", "🎃")
+          ]
+        },
+        {
+          breakfast: [
+            dish("菜肉小馄饨", "少量，汤不要太咸。", "🥟"),
+            dish("煮鸡蛋", "配蔬菜，不加糖饮品。", "🥚"),
+            dish("拌油麦菜", "少油少盐。", "🥬")
+          ],
+          lunch: [
+            dish("清炖鸡腿去皮", "去皮少油，配蔬菜。", "🍗"),
+            dish("青椒炒豆干", "少油，豆干适量。", "🫑"),
+            dish("玉米面窝头小个", "主食定量。", "🌽")
+          ],
+          dinner: [
+            dish("番茄冬瓜汤", "清淡暖胃。", "🍵"),
+            dish("清炒小白菜", "晚餐多蔬菜。", "🥬"),
+            dish("蒸豆腐", "少油调味。", "🫘")
+          ],
+          snack: [
+            dish("黄瓜番茄盘", "不加糖，少蘸料。", "🥒"),
+            dish("杏仁少量", "一小把以内。", "🌰")
+          ]
+        },
+        {
+          breakfast: [
+            dish("鸡蛋蔬菜饼", "少油煎，小份。", "🥚"),
+            dish("豆浆", "无糖小杯。", "🥛"),
+            dish("凉拌莴笋丝", "清爽少盐。", "🥗")
+          ],
+          lunch: [
+            dish("清蒸鲈鱼", "少油清蒸，味道清淡。", "🐟"),
+            dish("蒜蓉西兰花", "少油，多蔬菜。", "🥦"),
+            dish("红豆杂粮饭小半碗", "主食定量。", "🍚")
+          ],
+          dinner: [
+            dish("菌菇豆腐汤", "清淡高蛋白。", "🍄"),
+            dish("凉拌菠菜", "焯水后少油拌。", "🥬"),
+            dish("番茄炒蛋", "少油，不放糖。", "🍅")
+          ],
+          snack: [
+            dish("梨小半个", "血糖稳定时少量。", "🍐"),
+            dish("煮毛豆", "少盐，少量。", "🫘")
+          ]
+        }
+      ];
       var session = null;
       var activeRecognition = null;
       var listenTimer = null;
@@ -211,18 +470,26 @@
       var homeScreen = document.getElementById("homeScreen");
       var questionScreen = document.getElementById("questionScreen");
       var completeScreen = document.getElementById("completeScreen");
+      var recipeScreen = document.getElementById("recipeScreen");
       var startBtn = document.getElementById("startBtn");
+      var recipeBtn = document.getElementById("recipeBtn");
       var questionText = document.getElementById("questionText");
       var statusText = document.getElementById("statusText");
       var completeText = document.getElementById("completeText");
       var syncStatus = document.getElementById("syncStatus");
       var summaryBox = document.getElementById("summaryBox");
       var againBtn = document.getElementById("againBtn");
+      var todayRecipePreview = document.getElementById("todayRecipePreview");
+      var recipeTitle = document.getElementById("recipeTitle");
+      var recipeList = document.getElementById("recipeList");
+      var rereadRecipeBtn = document.getElementById("rereadRecipeBtn");
+      var backHomeBtn = document.getElementById("backHomeBtn");
 
       function showScreen(name) {
         homeScreen.classList.toggle("active", name === "home");
         questionScreen.classList.toggle("active", name === "question");
         completeScreen.classList.toggle("active", name === "complete");
+        recipeScreen.classList.toggle("active", name === "recipe");
         window.scrollTo(0, 0);
       }
 
@@ -365,6 +632,12 @@
       }
 
       function listenForStep(step, isStartRetry) {
+        var nativeSpeech = getNativeSpeechRecognition();
+        if (nativeSpeech) {
+          listenForStepNative(step, nativeSpeech);
+          return;
+        }
+
         var Recognition = getRecognitionConstructor();
         if (!Recognition) {
           handleStepNoAnswer(step);
@@ -467,6 +740,60 @@
           }
           handleStepNoAnswer(step);
         }
+      }
+
+      function getNativeSpeechRecognition() {
+        if (!window.Capacitor || !window.Capacitor.Plugins) return null;
+        return window.Capacitor.Plugins.SpeechRecognition || null;
+      }
+
+      function listenForStepNative(step, nativeSpeech) {
+        clearTimers();
+        stopRecognition();
+        recognitionDone = false;
+
+        Promise.resolve()
+          .then(function () {
+            if (nativeSpeech.available) return nativeSpeech.available();
+            return { available: true };
+          })
+          .then(function (result) {
+            if (result && result.available === false) throw new Error("语音识别不可用");
+            if (nativeSpeech.requestPermissions) return nativeSpeech.requestPermissions();
+            return null;
+          })
+          .then(function () {
+            listenTimer = window.setTimeout(function () {
+              handleStepNoAnswer(step);
+            }, LISTEN_TIMEOUT_MS);
+            return nativeSpeech.start({
+              language: "zh-CN",
+              maxResults: 1,
+              partialResults: false,
+              popup: false,
+              prompt: step.prompt
+            });
+          })
+          .then(function (result) {
+            if (recognitionDone) return;
+            recognitionDone = true;
+            clearTimers();
+            var text = "";
+            if (result && Array.isArray(result.matches) && result.matches.length) {
+              text = result.matches[0] || "";
+            }
+            if (!String(text).trim()) {
+              handleStepNoAnswer(step);
+              return;
+            }
+            saveStepAnswer(step, String(text).trim());
+          })
+          .catch(function () {
+            if (recognitionDone) return;
+            recognitionDone = true;
+            clearTimers();
+            handleStepNoAnswer(step);
+          });
       }
 
       function handleStepNoAnswer(step) {
@@ -726,6 +1053,98 @@
         });
       }
 
+      function dish(name, note, icon) {
+        return {
+          name: name,
+          note: note,
+          icon: icon
+        };
+      }
+
+      function getTodayRecipe() {
+        var now = new Date();
+        var start = new Date(now.getFullYear(), 0, 0);
+        var dayOfYear = Math.floor((now - start) / 86400000);
+        return weeklyRecipes[dayOfYear % weeklyRecipes.length];
+      }
+
+      function getMealLabel(key) {
+        if (key === "breakfast") return "早餐";
+        if (key === "lunch") return "午餐";
+        if (key === "dinner") return "晚餐";
+        return "加餐";
+      }
+
+      function renderRecipePreview() {
+        var recipe = getTodayRecipe();
+        todayRecipePreview.textContent = "今日食谱推荐：" + recipe.breakfast[0].name + "、" + recipe.lunch[0].name + "、" + recipe.dinner[0].name;
+      }
+
+      function showTodayRecipe() {
+        stopAllAudioWork();
+        var recipe = getTodayRecipe();
+        renderRecipe(recipe);
+        showScreen("recipe");
+        speakRecipe(recipe);
+      }
+
+      function renderRecipe(recipe) {
+        recipeTitle.textContent = "今日食谱推荐";
+        recipeList.innerHTML = "";
+        ["breakfast", "lunch", "dinner", "snack"].forEach(function (mealKey) {
+          var section = document.createElement("section");
+          section.className = "meal-section";
+
+          var title = document.createElement("div");
+          title.className = "meal-title";
+          title.textContent = getMealLabel(mealKey);
+          section.appendChild(title);
+
+          var grid = document.createElement("div");
+          grid.className = "dish-grid";
+          recipe[mealKey].forEach(function (item) {
+            grid.appendChild(createDishCard(item));
+          });
+          section.appendChild(grid);
+          recipeList.appendChild(section);
+        });
+      }
+
+      function createDishCard(item) {
+        var card = document.createElement("article");
+        card.className = "recipe-card";
+
+        var art = document.createElement("div");
+        art.className = "food-art";
+        art.textContent = item.icon;
+
+        var content = document.createElement("div");
+        var name = document.createElement("div");
+        name.className = "dish-name";
+        name.textContent = item.name;
+        var note = document.createElement("div");
+        note.className = "dish-note";
+        note.textContent = item.note;
+
+        content.appendChild(name);
+        content.appendChild(note);
+        card.appendChild(art);
+        card.appendChild(content);
+        return card;
+      }
+
+      function speakRecipe(recipe) {
+        var text = "今日食谱。早餐可以选" + recipe.breakfast.map(getDishName).join("、") +
+          "。午餐可以选" + recipe.lunch.map(getDishName).join("、") +
+          "。晚餐可以选" + recipe.dinner.map(getDishName).join("、") +
+          "。加餐可以选" + recipe.snack.map(getDishName).join("、") + "。";
+        speakPrompt(text, function () {});
+      }
+
+      function getDishName(item) {
+        return item.name;
+      }
+
       function escapeHtml(value) {
         return String(value)
           .replace(/&/g, "&amp;")
@@ -737,6 +1156,16 @@
 
       startBtn.addEventListener("click", startSession);
       againBtn.addEventListener("click", startSession);
+      recipeBtn.addEventListener("click", showTodayRecipe);
+      rereadRecipeBtn.addEventListener("click", function () {
+        speakRecipe(getTodayRecipe());
+      });
+      backHomeBtn.addEventListener("click", function () {
+        stopAllAudioWork();
+        showScreen("home");
+      });
+
+      renderRecipePreview();
 
       if ("speechSynthesis" in window) {
         window.speechSynthesis.onvoiceschanged = chooseChineseVoice;
