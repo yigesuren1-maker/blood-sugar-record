@@ -472,80 +472,94 @@
       position: relative;
       overflow: hidden;
       display: grid;
-      gap: 8px;
-      min-height: 168px;
-      padding: 16px 18px;
+      gap: 12px;
+      min-height: 0;
+      padding: 18px;
       border: 0;
-      border-radius: 0 0 28px 28px;
+      border-radius: 24px;
       background: linear-gradient(135deg, #f7fbec 0%, #edf8df 54%, #fff8e7 100%);
       color: var(--text);
+      box-shadow: 0 10px 26px rgba(8, 78, 43, 0.1);
     }
 
-    .home-family-art {
-      position: absolute;
-      right: 10px;
-      bottom: 8px;
-      width: 118px;
-      height: 96px;
-      display: flex;
+    .broadcast-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
       align-items: center;
-      justify-content: center;
-      gap: 0;
-      white-space: nowrap;
-      border-radius: 44% 56% 50% 50%;
-      background: rgba(255, 255, 255, 0.54);
-      font-size: 56px;
-      line-height: 1;
     }
 
-    .home-family-art span {
-      display: inline-block;
-      line-height: 1;
-      transform: translateY(2px);
-    }
-
-    .home-title,
-    .home-subtitle,
-    .home-date,
-    .home-tip {
-      position: relative;
-      z-index: 1;
-      max-width: calc(100% - 104px);
-    }
-
-    .home-title {
+    .broadcast-title {
       color: #075f34;
       text-shadow: 0 3px 0 rgba(7, 95, 52, 0.1);
       white-space: nowrap;
-      font-size: clamp(42px, 12vw, 66px);
+      font-size: clamp(38px, 11vw, 58px);
+      line-height: 1.05;
+      font-weight: 900;
     }
 
-    .home-subtitle {
+    .broadcast-desc {
       color: #1f1f1f;
-      margin-top: 0;
+      font-size: clamp(21px, 6vw, 32px);
+      line-height: 1.22;
+      font-weight: 900;
     }
 
-    .home-date {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      max-width: calc(100% - 104px);
-      padding: 7px 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.92);
+    .broadcast-icon {
+      width: 74px;
+      height: 74px;
+      display: grid;
+      place-items: center;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.86);
+      font-size: 42px;
+      box-shadow: inset 0 -6px 14px rgba(255, 255, 255, 0.55), 0 8px 18px rgba(8, 78, 43, 0.09);
+    }
+
+    .broadcast-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .broadcast-item {
+      min-height: 74px;
+      padding: 10px 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.9);
       border: 2px solid #dcebcf;
       color: #272727;
       box-shadow: 0 4px 16px rgba(8, 78, 43, 0.08);
     }
 
-    .home-tip {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .broadcast-label {
       color: #138347;
-      font-size: clamp(18px, 5vw, 28px);
-      line-height: 1.25;
+      font-size: clamp(17px, 4.8vw, 24px);
+      line-height: 1.1;
       font-weight: 900;
+    }
+
+    .broadcast-value {
+      margin-top: 5px;
+      color: var(--text);
+      font-size: clamp(22px, 6vw, 32px);
+      line-height: 1.12;
+      font-weight: 900;
+      word-break: keep-all;
+    }
+
+    .broadcast-button {
+      min-height: 82px;
+      border: 0;
+      border-radius: 999px;
+      padding: 18px;
+      background: linear-gradient(135deg, #23a65a, #0b7c42);
+      color: var(--white);
+      box-shadow: 0 7px 0 var(--green-dark);
+      font-size: clamp(30px, 8vw, 46px);
+      line-height: 1.15;
+      font-weight: 900;
+      touch-action: manipulation;
     }
 
     .feature-grid {
@@ -716,21 +730,18 @@
 
     @media (max-width: 420px) {
       .home-header {
-        min-height: 150px;
         padding: 14px 14px;
       }
 
-      .home-family-art {
-        right: 2px;
-        width: 96px;
-        font-size: 46px;
+      .broadcast-icon {
+        width: 62px;
+        height: 62px;
+        border-radius: 20px;
+        font-size: 34px;
       }
 
-      .home-title,
-      .home-subtitle,
-      .home-date,
-      .home-tip {
-        max-width: calc(100% - 86px);
+      .broadcast-grid {
+        grid-template-columns: 1fr;
       }
 
       .health-card-top {
@@ -749,17 +760,32 @@
   <main class="app">
     <section id="homeScreen" class="screen home-screen active" aria-label="首页">
       <header class="home-header">
-        <h1 class="home-title">血糖记录</h1>
-        <div class="home-subtitle">语音记录血压血糖和用药</div>
-        <div id="homeTodayDate" class="home-date">今日</div>
-        <div class="home-tip">
-          <span aria-hidden="true">🔊</span>
-          <span>今天也要好好照顾自己哦！</span>
+        <div class="broadcast-head">
+          <div>
+            <div class="broadcast-title">今日播报</div>
+            <div class="broadcast-desc">点一下，听天气、阳历和阴历</div>
+          </div>
+          <div class="broadcast-icon" aria-hidden="true">📣</div>
         </div>
-        <div class="home-family-art" aria-hidden="true">
-          <span>👴🏻</span>
-          <span>👵🏻</span>
+        <div class="broadcast-grid">
+          <div class="broadcast-item">
+            <div class="broadcast-label">阳历日期</div>
+            <div id="broadcastSolarDate" class="broadcast-value">今日</div>
+          </div>
+          <div class="broadcast-item">
+            <div class="broadcast-label">星期</div>
+            <div id="broadcastWeekday" class="broadcast-value">星期</div>
+          </div>
+          <div class="broadcast-item">
+            <div class="broadcast-label">阴历日期</div>
+            <div id="broadcastLunarDate" class="broadcast-value">正在计算</div>
+          </div>
+          <div class="broadcast-item">
+            <div class="broadcast-label">榆树天气</div>
+            <div id="broadcastWeather" class="broadcast-value">正在获取</div>
+          </div>
         </div>
+        <button id="broadcastBtn" class="broadcast-button" type="button">播报今天</button>
       </header>
 
       <div class="feature-grid">
@@ -1058,7 +1084,11 @@
       var againBtn = document.getElementById("againBtn");
       var questionHomeBtn = document.getElementById("questionHomeBtn");
       var completeHomeBtn = document.getElementById("completeHomeBtn");
-      var homeTodayDate = document.getElementById("homeTodayDate");
+      var broadcastSolarDate = document.getElementById("broadcastSolarDate");
+      var broadcastWeekday = document.getElementById("broadcastWeekday");
+      var broadcastLunarDate = document.getElementById("broadcastLunarDate");
+      var broadcastWeather = document.getElementById("broadcastWeather");
+      var broadcastBtn = document.getElementById("broadcastBtn");
       var todayRecipePreview = document.getElementById("todayRecipePreview");
       var recipeTitle = document.getElementById("recipeTitle");
       var recipeList = document.getElementById("recipeList");
@@ -1075,6 +1105,14 @@
       var dishHomeBtn = document.getElementById("dishHomeBtn");
       var currentRecipe = null;
       var currentDish = null;
+      var todayBroadcast = {
+        solarDate: "",
+        weekday: "",
+        lunarDate: "",
+        weather: "",
+        temperature: "",
+        weatherReady: false
+      };
 
       function showScreen(name) {
         if (dishScreen.classList.contains("active") && name !== "dish" && "speechSynthesis" in window) {
@@ -1100,10 +1138,78 @@
         return two(date.getHours()) + ":" + two(date.getMinutes());
       }
 
-      function renderHomeDate() {
+      function renderTodayBroadcastDate() {
         var now = new Date();
         var week = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][now.getDay()];
-        homeTodayDate.textContent = now.getFullYear() + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日  " + week;
+        todayBroadcast.solarDate = now.getFullYear() + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日";
+        todayBroadcast.weekday = week;
+        todayBroadcast.lunarDate = getLunarDateText(now);
+        broadcastSolarDate.textContent = todayBroadcast.solarDate;
+        broadcastWeekday.textContent = todayBroadcast.weekday;
+        broadcastLunarDate.textContent = todayBroadcast.lunarDate;
+      }
+
+      function getLunarDateText(date) {
+        try {
+          return new Intl.DateTimeFormat("zh-CN-u-ca-chinese", {
+            month: "long",
+            day: "numeric"
+          }).format(date).replace(/\s/g, "");
+        } catch (error) {
+          return "暂未获取到";
+        }
+      }
+
+      function loadYushuWeather() {
+        broadcastWeather.textContent = "正在获取";
+        return fetch("https://api.open-meteo.com/v1/forecast?latitude=44.82&longitude=126.55&current=temperature_2m,weather_code&timezone=Asia%2FShanghai", {
+          method: "GET"
+        }).then(function (response) {
+          if (!response.ok) throw new Error("天气接口错误 " + response.status);
+          return response.json();
+        }).then(function (data) {
+          var current = data && data.current ? data.current : {};
+          var temperature = typeof current.temperature_2m === "number" ? Math.round(current.temperature_2m) : "";
+          var weather = getWeatherText(current.weather_code);
+          todayBroadcast.weather = weather;
+          todayBroadcast.temperature = temperature;
+          todayBroadcast.weatherReady = Boolean(weather && temperature !== "");
+          broadcastWeather.textContent = todayBroadcast.weatherReady ? weather + " " + temperature + "度" : "暂未获取到";
+          return todayBroadcast;
+        }).catch(function () {
+          todayBroadcast.weather = "";
+          todayBroadcast.temperature = "";
+          todayBroadcast.weatherReady = false;
+          broadcastWeather.textContent = "暂未获取到";
+          return todayBroadcast;
+        });
+      }
+
+      function getWeatherText(code) {
+        var value = Number(code);
+        if ([0].indexOf(value) !== -1) return "晴";
+        if ([1, 2].indexOf(value) !== -1) return "少云";
+        if ([3].indexOf(value) !== -1) return "多云";
+        if ([45, 48].indexOf(value) !== -1) return "有雾";
+        if ([51, 53, 55, 56, 57].indexOf(value) !== -1) return "小雨";
+        if ([61, 63, 65, 66, 67, 80, 81, 82].indexOf(value) !== -1) return "有雨";
+        if ([71, 73, 75, 77, 85, 86].indexOf(value) !== -1) return "有雪";
+        if ([95, 96, 99].indexOf(value) !== -1) return "雷雨";
+        return "";
+      }
+
+      function speakTodayBroadcast() {
+        stopAllAudioWork();
+        renderTodayBroadcastDate();
+        loadYushuWeather().then(function () {
+          var text = "今天是" + todayBroadcast.solarDate + "，" + todayBroadcast.weekday + "。农历" + todayBroadcast.lunarDate + "。";
+          if (todayBroadcast.weatherReady) {
+            text += "吉林省榆树市今天" + todayBroadcast.weather + "，当前气温" + todayBroadcast.temperature + "度。今天也要好好照顾自己哦。";
+          } else {
+            text += "吉林省榆树市天气暂时没有获取到。今天也要好好照顾自己哦。";
+          }
+          speakPrompt(text, function () {});
+        });
       }
 
       function getLocalRecords() {
@@ -1811,6 +1917,7 @@
       startBtn.addEventListener("click", startSession);
       againBtn.addEventListener("click", startSession);
       recipeBtn.addEventListener("click", showTodayRecipe);
+      broadcastBtn.addEventListener("click", speakTodayBroadcast);
       questionHomeBtn.addEventListener("click", returnHome);
       completeHomeBtn.addEventListener("click", returnHome);
       recipeTopHomeBtn.addEventListener("click", returnHome);
@@ -1826,7 +1933,8 @@
       });
       dishHomeBtn.addEventListener("click", returnHome);
 
-      renderHomeDate();
+      renderTodayBroadcastDate();
+      loadYushuWeather();
       renderRecipePreview();
 
       if ("speechSynthesis" in window) {
