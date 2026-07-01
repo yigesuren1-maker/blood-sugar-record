@@ -196,6 +196,7 @@
           }
           return response.json();
         }).then(function (res) {
+          console.log("family records", res || []);
           var records = normalizeSupabaseRecords(res || []);
           var filtered = filterByDate(records, dateFilter.value);
           renderRecords(filtered);
@@ -237,16 +238,27 @@
       function normalizeSupabaseRecords(rows) {
         return rows.map(function (row) {
           var note = parseNote(row.note);
+          var type = detectRecordType(row, note);
+          var summary = buildSummaryText(row, note);
           return {
             id: row.id,
+            raw: row,
+            note: note,
+            recordType: type,
+            summary: summary,
             recordDate: note.recordDate || formatDateFromIso(row.created_at),
             recordTime: note.recordTime || formatTimeFromIso(row.created_at),
             medicineName: note.medicineName || "未记录",
             medicineCount: note.medicineCount || "未记录",
             mealRelation: note.mealRelation || row.period || "未记录",
-            bloodSugarValue: note.bloodSugarValue || row.value || "未记录",
+            bloodSugarValue: note.bloodSugarValue || note.bloodSugarValueText || row.value || "未记录",
             systolicPressure: note.systolicPressure || "未记录",
             diastolicPressure: note.diastolicPressure || "未记录",
+            sleepQuality: note.sleepQuality || "未填写",
+            sleepTimeText: note.sleepTimeText || joinParts([note.sleepTime, note.wakeTime], " / ") || "未填写",
+            dayRest: note.dayRest || "未填写",
+            medicineTaken: note.medicineTaken || note.medicationStatus || "未填写",
+            medicineDetail: note.medicineDetail || "未填写",
             createdAt: row.created_at
           };
         });
@@ -258,8 +270,53 @@
         try {
           return JSON.parse(note);
         } catch (error) {
-          return { symptoms: String(note) };
+          return { summary: String(note) };
         }
+      }
+
+      function detectRecordType(row, note) {
+        var text = [
+          note.recordType,
+          note.type,
+          note.category,
+          row.period,
+          note.content,
+          note.summary,
+          note.text,
+          note.remark,
+          note.rawText,
+          typeof row.note === "string" ? row.note : ""
+        ].map(function (item) {
+          return typeof item === "object" ? JSON.stringify(item || {}) : String(item || "");
+        }).join(" ");
+        if (/睡眠/.test(text)) return "睡眠";
+        if (/用药|吃药/.test(text)) return "用药";
+        if (/血糖|饭前|饭后|空腹|睡前/.test(text)) return "血糖";
+        return "旧记录";
+      }
+
+      function buildSummaryText(row, note) {
+        var candidates = [
+          note.summary,
+          note.content,
+          note.text,
+          note.remark,
+          note.rawText,
+          note.data,
+          note.raw
+        ];
+        for (var i = 0; i < candidates.length; i += 1) {
+          var value = candidates[i];
+          if (value === undefined || value === null || value === "") continue;
+          return typeof value === "object" ? JSON.stringify(value) : String(value);
+        }
+        return typeof row.note === "string" && row.note.charAt(0) !== "{" ? row.note : "";
+      }
+
+      function joinParts(parts, separator) {
+        return parts.filter(function (item) {
+          return item && item !== "未说明" && item !== "未记录" && item !== "未填写";
+        }).join(separator);
       }
 
       function filterByDate(records, date) {
@@ -298,21 +355,57 @@
         records.forEach(function (record) {
           var item = document.createElement("article");
           item.className = "record";
-          item.innerHTML =
-            '<div class="record-time">日期：' + escapeHtml(record.recordDate || "") + "</div>" +
-            row("记录时间", record.recordTime) +
-            row("高压", record.systolicPressure) +
-            row("低压", record.diastolicPressure) +
-            row("饭前/饭后", record.mealRelation) +
-            row("血糖", record.bloodSugarValue) +
-            row("降糖药", record.medicineName) +
-            row("吃了几片", record.medicineCount);
+          item.innerHTML = renderRecordCard(record);
           recordList.appendChild(item);
         });
       }
 
+      function renderRecordCard(record) {
+        var title = "【" + displayType(record.recordType) + "】" + (record.recordDate || "") + " " + (record.recordTime || "");
+        var html = '<div class="record-time">' + escapeHtml(title) + "</div>";
+        if (record.recordType === "血糖") {
+          html += row("时段", record.mealRelation);
+          html += row("血糖值", record.bloodSugarValue);
+          html += row("用药/打针情况", joinParts([record.medicineTaken, record.medicineDetail], "，") || "未填写");
+          if (record.summary) html += row("记录内容", record.summary);
+          return html;
+        }
+        if (record.recordType === "睡眠") {
+          html += row("睡眠情况", record.sleepQuality);
+          html += row("睡眠时间", record.sleepTimeText);
+          html += row("白天休息", record.dayRest);
+          html += row("用药情况", joinParts([record.medicineTaken, record.medicineDetail], "，") || "未填写");
+          if (record.summary) html += row("记录内容", record.summary);
+          return html;
+        }
+        if (record.recordType === "用药") {
+          html += row("用药情况", record.medicineTaken);
+          html += row("用药详情", record.medicineDetail);
+          if (record.summary) html += row("记录内容", record.summary);
+          return html;
+        }
+        html += row("记录时间", record.recordTime);
+        html += row("高压", record.systolicPressure);
+        html += row("低压", record.diastolicPressure);
+        html += row("饭前/饭后", record.mealRelation);
+        html += row("血糖", record.bloodSugarValue);
+        html += row("降糖药", record.medicineName);
+        html += row("吃了几片", record.medicineCount);
+        return html;
+      }
+
+      function displayType(type) {
+        return type && type !== "旧记录" ? type : "记录";
+      }
+
       function row(label, value) {
-        return '<div class="row"><span>' + escapeHtml(label) + '：</span>' + escapeHtml(value || "未记录") + "</div>";
+        return '<div class="row"><span>' + escapeHtml(label) + '：</span>' + escapeHtml(cleanDisplayValue(value)) + "</div>";
+      }
+
+      function cleanDisplayValue(value) {
+        if (value === undefined || value === null || value === "") return "未填写";
+        if (typeof value === "object") return JSON.stringify(value);
+        return String(value);
       }
 
       function escapeHtml(value) {
