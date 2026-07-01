@@ -734,59 +734,133 @@
     }
 
     .voice-home {
-      justify-content: center;
-      gap: 28px;
+      justify-content: flex-start;
+      gap: 18px;
       text-align: center;
       min-height: calc(100vh - 44px);
+      padding: 22px 0 8px;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(195, 231, 171, 0.58), transparent 34%),
+        linear-gradient(180deg, #f6f9ec 0%, #fffdf2 62%, #f8f3e7 100%);
     }
 
     .voice-home-title {
       color: var(--green-dark);
-      font-size: clamp(54px, 16vw, 92px);
-      line-height: 1.08;
+      font-size: clamp(42px, 11vw, 64px);
+      line-height: 1.1;
       font-weight: 900;
       letter-spacing: 0;
     }
 
     .voice-home-subtitle {
-      color: var(--text);
-      font-size: clamp(28px, 8vw, 44px);
+      color: var(--muted);
+      font-size: clamp(22px, 5.8vw, 32px);
       line-height: 1.25;
-      font-weight: 900;
+      font-weight: 700;
+    }
+
+    .voice-hero {
+      display: grid;
+      gap: 8px;
+      padding: 10px 10px 4px;
+    }
+
+    .voice-hint {
+      width: min(92%, 500px);
+      margin: 0 auto;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.88);
+      color: #2c3b31;
+      box-shadow: 0 8px 24px rgba(8, 78, 43, 0.08);
+      font-size: clamp(20px, 5.4vw, 30px);
+      line-height: 1.2;
+      font-weight: 800;
     }
 
     .voice-start-button {
-      width: min(100%, 560px);
-      min-height: min(58vh, 430px);
+      width: min(85%, 520px);
+      min-height: 220px;
+      margin: 10px auto 0;
       border: 0;
-      border-radius: 34px;
-      padding: 34px 22px;
-      background: linear-gradient(145deg, #21a85b, #08723d);
-      color: var(--white);
-      box-shadow: 0 12px 0 var(--green-dark);
-      font-size: clamp(50px, 15vw, 88px);
-      line-height: 1.12;
+      border-radius: 36px;
+      padding: 26px 22px;
+      display: grid;
+      gap: 8px;
+      place-items: center;
+      background: linear-gradient(145deg, #ffffff 0%, #eaf6dc 45%, #cfeec0 100%);
+      color: var(--green-dark);
+      box-shadow: 0 18px 36px rgba(8, 78, 43, 0.16), inset 0 0 0 2px rgba(11, 122, 59, 0.08);
+      font-size: clamp(38px, 10vw, 58px);
+      line-height: 1.08;
       font-weight: 900;
       touch-action: manipulation;
+    }
+
+    .voice-start-button .voice-mic-icon {
+      width: 86px;
+      height: 86px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0b7a3b, #149c53);
+      color: #ffffff;
+      box-shadow: 0 10px 18px rgba(11, 122, 59, 0.22);
+      font-size: 48px;
+      line-height: 1;
+    }
+
+    .voice-start-button .voice-card-subtext {
+      color: #4c6655;
+      font-size: clamp(19px, 5vw, 28px);
+      line-height: 1.2;
+      font-weight: 700;
     }
 
     .voice-start-button:active,
     .mic-button:active {
       transform: translateY(6px);
-      box-shadow: 0 5px 0 var(--green-dark);
+      box-shadow: 0 8px 18px rgba(8, 78, 43, 0.14);
     }
 
     .small-recipe-button {
-      width: min(100%, 420px);
-      min-height: 78px;
-      border: 4px solid #ee7b16;
-      border-radius: 999px;
-      padding: 14px 18px;
-      background: var(--white);
-      color: #d45d08;
-      font-size: clamp(26px, 7vw, 40px);
-      line-height: 1.15;
+      width: min(85%, 520px);
+      min-height: 96px;
+      margin: 0 auto;
+      border: 0;
+      border-radius: 28px;
+      padding: 16px 20px;
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.94);
+      color: #244331;
+      box-shadow: 0 12px 28px rgba(136, 93, 31, 0.1), inset 0 0 0 2px rgba(238, 151, 72, 0.18);
+      font-size: clamp(24px, 6.2vw, 34px);
+      line-height: 1.12;
       font-weight: 900;
+    }
+
+    .small-recipe-button .recipe-icon {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: #fff0da;
+      font-size: 34px;
+      line-height: 1;
+    }
+
+    .small-recipe-button .recipe-subtext {
+      display: block;
+      margin-top: 5px;
+      color: #7a5a32;
+      font-size: clamp(17px, 4.5vw, 24px);
+      line-height: 1.2;
+      font-weight: 700;
     }
 
     .hidden-legacy {
@@ -943,10 +1017,20 @@
 <body>
   <main class="app">
     <section id="homeScreen" class="screen voice-home active" aria-label="首页">
-      <div class="voice-home-title">血糖小助手</div>
-      <div class="voice-home-subtitle">点一下，说血糖、天气、日期、睡眠和用药</div>
-      <button id="assistantEntryBtn" class="voice-start-button" type="button">开始说话</button>
-      <button id="recipeBtn" class="small-recipe-button" type="button">今日食谱</button>
+      <div class="voice-hero">
+        <div class="voice-home-title">血糖小助手</div>
+        <div class="voice-home-subtitle">说血糖、天气、日期、睡眠和用药</div>
+      </div>
+      <button id="assistantEntryBtn" class="voice-start-button" type="button">
+        <span class="voice-mic-icon" aria-hidden="true">🎙️</span>
+        <span>开始说话</span>
+        <span class="voice-card-subtext">点一下，我来听您说</span>
+      </button>
+      <div class="voice-hint">可以说：饭后血糖十二点五</div>
+      <button id="recipeBtn" class="small-recipe-button" type="button">
+        <span class="recipe-icon" aria-hidden="true">🍲</span>
+        <span>今日食谱<span class="recipe-subtext">适合控糖的家常饭菜</span></span>
+      </button>
       <div class="hidden-legacy" aria-hidden="true">
         <button id="startBtn" type="button">开始记录</button>
         <button id="broadcastBtn" type="button">播报今天</button>
