@@ -2085,27 +2085,22 @@
           var times = parseSleepTime(text);
           if (times.sleepTime) partial.sleepTime = times.sleepTime;
           if (times.wakeTime) partial.wakeTime = times.wakeTime;
-          if (partial.sleepTime && partial.wakeTime) {
-            state.step = "dayRest";
-            return "白天睡没睡？睡了多久？";
+          if (!times.sleepTime || !times.wakeTime) {
+            partial.sleepTimeText = text;
+            partial.note = (partial.note || "") + " 睡眠时间：" + text;
           }
-          if (partial.sleepTime) return "几点醒的？";
-          if (partial.wakeTime) return "几点睡的？";
-          partial.timeRetryCount = (partial.timeRetryCount || 0) + 1;
-          if (partial.timeRetryCount === 1) return "您可以这样说，十一点睡，五点醒。";
           state.step = "dayRest";
           return "白天睡没睡？睡了多久？";
         }
 
         if (state.step === "dayRest") {
-          var dayInfo = parseSleepInfo(text);
-          partial.dayRest = buildDayRestText(dayInfo) || text;
+          partial.dayRest = text;
           state.step = "medication";
           return "昨天药按医生说的吃了吗？";
         }
 
         if (state.step === "medication") {
-          partial.medication = parseMedicationInjectionStatus(text);
+          partial.medication = text;
           return finishSleepFlow(partial, text);
         }
 
@@ -2121,6 +2116,7 @@
           sleepQuality: partial.quality || "未说明",
           sleepTime: partial.sleepTime || "未说明",
           wakeTime: partial.wakeTime || "未说明",
+          sleepTimeText: partial.sleepTimeText || "未说明",
           dayRest: partial.dayRest || "未说明",
           medicineStatus: medication,
           rawText: [partial.rawText].concat(partial.answersRaw || [], [lastText]).filter(Boolean).join("；"),
@@ -2585,7 +2581,7 @@
       }
 
       function isMedicationAbnormal(status) {
-        return /未吃|漏吃|少吃|多吃|未打|漏打|少打|多打/.test(String(status || ""));
+        return /未吃|没吃|漏吃|忘吃|少吃|多吃|未打|没打|漏打|忘打|少打|多打/.test(String(status || ""));
       }
 
       function isSleepStartIntent(text) {
