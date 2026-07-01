@@ -627,6 +627,11 @@
       box-shadow: 0 7px 0 #9a3c05;
     }
 
+    .assistant-button {
+      background: linear-gradient(135deg, #38a6ff, #176fd1);
+      box-shadow: 0 7px 0 #0b3f7f;
+    }
+
     .return-button {
       min-height: 86px;
       border: 4px solid var(--green);
@@ -643,6 +648,67 @@
 
     .screen-top-action {
       margin-bottom: 14px;
+    }
+
+    .assistant-screen {
+      gap: 18px;
+    }
+
+    .assistant-panel,
+    .assistant-example,
+    .assistant-dialog {
+      background: var(--white);
+      border: 4px solid var(--line);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 22px rgba(8, 78, 43, 0.08);
+    }
+
+    .assistant-title {
+      color: var(--green-dark);
+      font-size: clamp(40px, 12vw, 66px);
+      line-height: 1.08;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .assistant-hint,
+    .assistant-line {
+      color: var(--text);
+      font-size: clamp(26px, 7vw, 40px);
+      line-height: 1.28;
+      font-weight: 900;
+      word-break: break-word;
+    }
+
+    .assistant-example {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+    }
+
+    .assistant-example-title {
+      color: var(--green-dark);
+      font-size: clamp(28px, 8vw, 42px);
+      font-weight: 900;
+    }
+
+    .assistant-dialog {
+      display: grid;
+      gap: 12px;
+    }
+
+    .assistant-label {
+      color: var(--muted);
+      font-size: clamp(20px, 6vw, 30px);
+      line-height: 1.2;
+      font-weight: 900;
+    }
+
+    .assistant-actions {
+      display: grid;
+      gap: 16px;
+      margin-top: auto;
     }
 
     .more-panel {
@@ -793,6 +859,7 @@
             </div>
           </div>
           <button id="startBtn" class="start-button" type="button">开始记录</button>
+          <button id="assistantEntryBtn" class="big-button assistant-button" type="button">开始对话</button>
         </section>
 
         <section class="health-card recipe-card-home" aria-label="今日食谱">
@@ -846,6 +913,31 @@
       <div id="questionText" class="question">正在听，请说血糖</div>
       <div id="statusText" class="status"></div>
       <button id="questionHomeBtn" class="return-button" type="button">返回首页</button>
+    </section>
+
+    <section id="assistantScreen" class="screen assistant-screen" aria-label="血糖小助手">
+      <div class="assistant-panel">
+        <div class="assistant-title">血糖小助手</div>
+        <div class="assistant-hint">您可以说：</div>
+      </div>
+      <div class="assistant-example">
+        <div class="assistant-example-title">“我测血糖了”</div>
+        <div class="assistant-example-title">“今天几号”</div>
+        <div class="assistant-example-title">“今天天气咋样”</div>
+        <div class="assistant-example-title">“昨晚睡得怎么样”</div>
+        <div class="assistant-example-title">“今天药吃了吗”</div>
+        <div class="assistant-example-title">“今日总结”</div>
+      </div>
+      <div class="assistant-dialog">
+        <div class="assistant-label">您刚才说：</div>
+        <div id="assistantUserText" class="assistant-line">还没开始说话</div>
+        <div class="assistant-label">小助手说：</div>
+        <div id="assistantReplyText" class="assistant-line">点下面按钮，说一句话就行。</div>
+      </div>
+      <div class="assistant-actions">
+        <button id="assistantTalkBtn" class="big-button assistant-button" type="button">点一下说话</button>
+        <button id="assistantHomeBtn" class="return-button" type="button">返回首页</button>
+      </div>
     </section>
 
     <section id="completeScreen" class="screen center" aria-label="记录完成">
@@ -1066,10 +1158,12 @@
       var recognitionDone = false;
       var homeScreen = document.getElementById("homeScreen");
       var questionScreen = document.getElementById("questionScreen");
+      var assistantScreen = document.getElementById("assistantScreen");
       var completeScreen = document.getElementById("completeScreen");
       var recipeScreen = document.getElementById("recipeScreen");
       var dishScreen = document.getElementById("dishScreen");
       var startBtn = document.getElementById("startBtn");
+      var assistantEntryBtn = document.getElementById("assistantEntryBtn");
       var recipeBtn = document.getElementById("recipeBtn");
       var questionText = document.getElementById("questionText");
       var statusText = document.getElementById("statusText");
@@ -1079,6 +1173,10 @@
       var againBtn = document.getElementById("againBtn");
       var questionHomeBtn = document.getElementById("questionHomeBtn");
       var completeHomeBtn = document.getElementById("completeHomeBtn");
+      var assistantTalkBtn = document.getElementById("assistantTalkBtn");
+      var assistantHomeBtn = document.getElementById("assistantHomeBtn");
+      var assistantUserText = document.getElementById("assistantUserText");
+      var assistantReplyText = document.getElementById("assistantReplyText");
       var broadcastBtn = document.getElementById("broadcastBtn");
       var todayRecipePreview = document.getElementById("todayRecipePreview");
       var recipeTitle = document.getElementById("recipeTitle");
@@ -1096,6 +1194,7 @@
       var dishHomeBtn = document.getElementById("dishHomeBtn");
       var currentRecipe = null;
       var currentDish = null;
+      var assistantState = null;
       var todayBroadcast = {
         solarDate: "",
         weekday: "",
@@ -1111,6 +1210,7 @@
         }
         homeScreen.classList.toggle("active", name === "home");
         questionScreen.classList.toggle("active", name === "question");
+        assistantScreen.classList.toggle("active", name === "assistant");
         completeScreen.classList.toggle("active", name === "complete");
         recipeScreen.classList.toggle("active", name === "recipe");
         dishScreen.classList.toggle("active", name === "dish");
@@ -1247,6 +1347,7 @@
       function returnHome() {
         stopAllAudioWork();
         session = null;
+        assistantState = null;
         showScreen("home");
       }
 
@@ -1327,6 +1428,500 @@
         }) || voices.find(function (voice) {
           return /^zh/i.test(voice.lang);
         }) || null;
+      }
+
+      function speakText(text) {
+        assistantReplyText.textContent = text;
+        if (!("speechSynthesis" in window)) return;
+        window.speechSynthesis.cancel();
+        var utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "zh-CN";
+        utterance.rate = 0.82;
+        utterance.pitch = 1.08;
+        utterance.volume = 1;
+        var voices = window.speechSynthesis.getVoices() || [];
+        var voice = voices.find(function (item) {
+          return /^zh/i.test(item.lang) && /female|xiaoxiao|huihui|yaoyao|tingting|hanhan|xiaoyi|女|晓|瑶|婷婷|慧/i.test(item.name);
+        }) || chooseChineseVoice();
+        if (voice) utterance.voice = voice;
+        window.speechSynthesis.speak(utterance);
+      }
+
+      function openAssistant() {
+        stopAllAudioWork();
+        assistantState = null;
+        assistantUserText.textContent = "还没开始说话";
+        assistantReplyText.textContent = "点下面按钮，说一句话就行。";
+        showScreen("assistant");
+      }
+
+      function startAssistantListening() {
+        stopAllAudioWork();
+        var Recognition = getRecognitionConstructor();
+        if (!Recognition) {
+          speakText("这个浏览器听不清语音。可以换安卓 Chrome 试试。");
+          return;
+        }
+        assistantUserText.textContent = "正在听，请说话";
+        assistantReplyText.textContent = "我听着呢。";
+        var recognition = new Recognition();
+        activeRecognition = recognition;
+        recognitionDone = false;
+        recognition.lang = "zh-CN";
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        listenTimer = window.setTimeout(function () {
+          if (recognitionDone) return;
+          recognitionDone = true;
+          try {
+            recognition.abort();
+          } catch (error) {}
+          activeRecognition = null;
+          speakText("刚才没听清，您再说一遍。");
+        }, LISTEN_TIMEOUT_MS);
+        recognition.onresult = function (event) {
+          if (recognitionDone) return;
+          recognitionDone = true;
+          clearTimers();
+          var text = event.results && event.results[0] && event.results[0][0] ? event.results[0][0].transcript : "";
+          activeRecognition = null;
+          handleAssistantInput(dedupeRecognizedText(text));
+        };
+        recognition.onerror = function () {
+          if (recognitionDone) return;
+          recognitionDone = true;
+          clearTimers();
+          activeRecognition = null;
+          speakText("刚才没听清，您再说一遍。");
+        };
+        recognition.onend = function () {
+          activeRecognition = null;
+        };
+        try {
+          recognition.start();
+        } catch (error) {
+          activeRecognition = null;
+          speakText("刚才没听清，您再说一遍。");
+        }
+      }
+
+      function handleAssistantInput(text) {
+        var raw = String(text || "").trim();
+        assistantUserText.textContent = raw || "没听清";
+        if (!raw) {
+          speakText("刚才没听清，您再说一遍。可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得怎么样。");
+          return;
+        }
+        if (assistantState && assistantState.waiting) {
+          handleAssistantFollowUp(raw);
+          return;
+        }
+        if (isHelpIntent(raw)) return speakText("您可以直接说：我测血糖了，今天天气咋样，今天几号，昨晚睡得怎么样，今天药吃了吗，或者今日总结。");
+        if (isRecipeIntent(raw)) {
+          speakText("好，我给您打开今日食谱。");
+          window.setTimeout(showTodayRecipe, 900);
+          return;
+        }
+        if (isSummaryIntent(raw)) return speakTodaySummary();
+        if (isDateIntent(raw)) return answerDateIntent(raw);
+        if (isWeatherIntent(raw)) return answerWeather();
+        if (isSugarHistoryIntent(raw)) return answerSugarHistory(raw);
+        if (isSleepIntent(raw)) return handleSleepIntent(raw);
+        if (isMedicineIntent(raw)) return handleMedicineIntent(raw);
+        if (isSugarRecordIntent(raw)) return handleSugarIntent(raw);
+        speakText("刚才没听清，您再说一遍。可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得怎么样。");
+      }
+
+      function handleAssistantFollowUp(text) {
+        if (assistantState.waiting === "sugarPeriod") {
+          var period = parseAssistantPeriod(text);
+          if (!period) {
+            speakText("请问是空腹、饭前、饭后，还是睡前？");
+            return;
+          }
+          assistantState.record.mealRelation = period;
+          finishAssistantSugarRecord(assistantState.record);
+          return;
+        }
+        if (assistantState.waiting === "sugarValue") {
+          var sugar = parseAssistantNumber(text);
+          if (sugar === null) {
+            speakText("请说血糖数值。");
+            return;
+          }
+          assistantState.record.bloodSugarValue = sugar;
+          finishAssistantSugarRecord(assistantState.record);
+          return;
+        }
+        if (assistantState.waiting === "medicineName") {
+          var name = extractMedicineName(text);
+          if (!name) {
+            speakText("请问吃的是什么药？");
+            return;
+          }
+          saveAssistantRecord("用药", {
+            medicineName: name,
+            medicineStatus: "未说明",
+            rawText: text
+          });
+          assistantState = null;
+          speakText("好，记上了。今天吃了" + name + "。");
+          return;
+        }
+        if (assistantState.waiting === "sleepTime") {
+          var sleep = parseSleepInfo(text);
+          saveAssistantRecord("睡眠", sleep);
+          assistantState = null;
+          if (sleep.sleepTime !== "未说明" || sleep.wakeTime !== "未说明") {
+            speakText("好，记上了。昨晚" + sleep.sleepTime + "睡，早上" + sleep.wakeTime + "醒。");
+          } else {
+            speakText("好，先记上。");
+          }
+        }
+      }
+
+      function isSugarRecordIntent(text) {
+        return /血糖|测糖/.test(text) && !isSugarHistoryIntent(text);
+      }
+
+      function isSugarHistoryIntent(text) {
+        return /血糖/.test(text) && /多少|怎么样|记.*吗|今天.*血糖|昨天.*血糖|最近|空腹血糖|饭后血糖/.test(text);
+      }
+
+      function isDateIntent(text) {
+        return /今天几号|今天多少号|阳历|什么日子|星期|周几|阴历|农历|播报今天|今天情况/.test(text);
+      }
+
+      function isWeatherIntent(text) {
+        return /天气|冷不冷|热不热|下雨|出门/.test(text);
+      }
+
+      function isSleepIntent(text) {
+        return /睡|醒|休息|午睡|白天/.test(text) || /昨天药|昨晚/.test(text);
+      }
+
+      function isMedicineIntent(text) {
+        return /吃药|用药|药吃|记录用药|二甲双胍|利格列汀|漏吃药|少吃|多吃|医生说/.test(text);
+      }
+
+      function isSummaryIntent(text) {
+        return /今日总结|今天总结|今天记录了什么|我今天记了什么/.test(text);
+      }
+
+      function isHelpIntent(text) {
+        return /怎么用|会干什么|帮帮我|怎么说/.test(text);
+      }
+
+      function isRecipeIntent(text) {
+        return /今天吃什么|推荐吃什么|看看食谱|今日食谱/.test(text);
+      }
+
+      function handleSugarIntent(text) {
+        var record = {
+          mealRelation: parseAssistantPeriod(text) || "未说明",
+          bloodSugarValue: parseAssistantNumber(text),
+          rawText: text
+        };
+        if (record.bloodSugarValue === null) {
+          assistantState = { waiting: "sugarValue", record: record };
+          speakText("请说血糖数值。");
+          return;
+        }
+        if (record.mealRelation === "未说明") {
+          assistantState = { waiting: "sugarPeriod", record: record };
+          speakText("请问是空腹、饭前、饭后，还是睡前？");
+          return;
+        }
+        finishAssistantSugarRecord(record);
+      }
+
+      function finishAssistantSugarRecord(record) {
+        assistantState = null;
+        var saved = saveAssistantRecord("血糖", {
+          mealRelation: record.mealRelation,
+          bloodSugarValue: String(record.bloodSugarValue),
+          rawText: record.rawText
+        });
+        var periodText = saved.mealRelation === "未说明" ? "" : saved.mealRelation;
+        var reply = "好，记上了。" + periodText + "血糖" + saved.bloodSugarValue + "。";
+        var value = Number(saved.bloodSugarValue);
+        if (value >= 10) reply += "这个数有点高。先别着急，注意少吃甜的。要是连续几次都高，就告诉家里人。";
+        if (value > 0 && value <= 3.9) reply += "这个数有点低。要是心慌、出汗、手抖，赶紧告诉家里人。";
+        speakText(reply);
+      }
+
+      function parseAssistantPeriod(text) {
+        if (/空腹/.test(text)) return "空腹";
+        if (/饭前|餐前/.test(text)) return "饭前";
+        if (/饭后|餐后/.test(text)) return "饭后";
+        if (/睡前/.test(text)) return "睡前";
+        return "";
+      }
+
+      function parseAssistantNumber(text) {
+        var value = String(text || "");
+        var chineseDecimal = value.match(/[零一二两三四五六七八九十百]+点[零一二两三四五六七八九]+/);
+        if (chineseDecimal) {
+          var parts = chineseDecimal[0].split("点");
+          return Number(chineseIntegerToNumber(parts[0]) + "." + chineseDigitsToString(parts[1]));
+        }
+        var normalized = normalizeNumberText(value);
+        var arabic = normalized.match(/\d+(?:\.\d+)?/);
+        if (arabic) return Number(arabic[0]);
+        var chinese = value.match(/[零一二两三四五六七八九十百]+/);
+        if (chinese) return chineseIntegerToNumber(chinese[0]);
+        return null;
+      }
+
+      function chineseDigitsToString(text) {
+        var map = { "零": "0", "一": "1", "二": "2", "两": "2", "三": "3", "四": "4", "五": "5", "六": "6", "七": "7", "八": "8", "九": "9" };
+        return String(text || "").split("").map(function (char) {
+          return map[char] || "";
+        }).join("");
+      }
+
+      function chineseIntegerToNumber(text) {
+        var map = { "零": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9 };
+        var value = String(text || "");
+        if (/^\d+$/.test(value)) return Number(value);
+        if (value.indexOf("百") !== -1) {
+          var parts = value.split("百");
+          var hundred = parts[0] ? (map[parts[0]] || 1) : 1;
+          var rest = parts[1] || "";
+          if (rest.length === 1 && map[rest] != null) return hundred * 100 + map[rest] * 10;
+          return hundred * 100 + (rest ? chineseIntegerToNumber(rest) : 0);
+        }
+        if (value.indexOf("十") !== -1) {
+          var tenParts = value.split("十");
+          var tens = tenParts[0] ? (map[tenParts[0]] || 1) : 1;
+          var ones = tenParts[1] ? (map[tenParts[1]] || 0) : 0;
+          return tens * 10 + ones;
+        }
+        return Number(chineseDigitsToString(value)) || 0;
+      }
+
+      function answerDateIntent(text) {
+        renderTodayBroadcastDate();
+        if (/阴历|农历/.test(text)) {
+          speakText("今天农历" + todayBroadcast.lunarDate + "。");
+          return;
+        }
+        if (/星期|周几/.test(text)) {
+          speakText("今天是" + todayBroadcast.weekday + "。");
+          return;
+        }
+        if (/播报今天|今天情况/.test(text)) {
+          speakTodayBroadcast();
+          return;
+        }
+        speakText("今天是" + formatShortSolarDate(new Date()) + "，" + todayBroadcast.weekday + "。");
+      }
+
+      function answerWeather() {
+        stopAllAudioWork();
+        loadYushuWeather().then(function () {
+          if (todayBroadcast.weatherReady) {
+            speakText("榆树今天" + todayBroadcast.weather + "，" + todayBroadcast.temperature + "度。出门看着点儿天气。");
+          } else {
+            speakText("榆树天气暂时没取到，过会儿再试试。");
+          }
+        });
+      }
+
+      function formatShortSolarDate(date) {
+        return (date.getMonth() + 1) + "月" + date.getDate() + "号";
+      }
+
+      function answerSugarHistory(text) {
+        var records = getRecordsForAssistant("血糖");
+        var rangeLabel = "今天";
+        if (/昨天/.test(text)) {
+          rangeLabel = "昨天";
+          records = records.filter(function (record) {
+            return record.recordDate === formatDate(addDays(new Date(), -1));
+          });
+        } else if (!/最近/.test(text)) {
+          records = records.filter(function (record) {
+            return record.recordDate === formatDate(new Date());
+          });
+        } else {
+          rangeLabel = "最近";
+        }
+        if (/空腹/.test(text)) records = records.filter(function (record) { return record.mealRelation === "空腹"; });
+        if (/饭后/.test(text)) records = records.filter(function (record) { return record.mealRelation === "饭后"; });
+        if (!records.length) {
+          speakText(rangeLabel === "今天" ? "今天还没记血糖。需要现在记一下吗？" : "还没找到血糖记录。您可以先说，我测血糖了。");
+          return;
+        }
+        var summary = records.slice(0, 4).map(function (record) {
+          return (record.mealRelation && record.mealRelation !== "未说明" ? record.mealRelation : "") + record.bloodSugarValue;
+        }).join("，");
+        speakText(rangeLabel + "记了" + countToChinese(records.length) + "回血糖。" + summary + "。");
+      }
+
+      function handleSleepIntent(text) {
+        var info = parseSleepInfo(text);
+        var saved = saveAssistantRecord("睡眠", info);
+        if (/睡得不好|没睡好|醒了好几次/.test(text) && saved.sleepTime === "未说明" && saved.wakeTime === "未说明") {
+          assistantState = { waiting: "sleepTime", record: saved };
+          speakText("好，先记上。昨晚睡得不好。您还记得几点睡、几点醒吗？");
+          return;
+        }
+        if (saved.dayRest !== "未说明" && saved.dayRestDuration !== "未说明") {
+          speakText("好，记上了。白天休息" + saved.dayRestDuration + "。");
+          return;
+        }
+        if (saved.dayRest !== "未说明") {
+          speakText("好，白天休息也记上了。");
+          return;
+        }
+        if (saved.medicineStatus !== "未说明") {
+          var reply = "好，记上了。昨天用药情况是" + saved.medicineStatus + "。";
+          if (saved.medicineStatus !== "正常") reply += "这个事儿最好让家里人知道。";
+          speakText(reply);
+          return;
+        }
+        if (saved.sleepTime !== "未说明" || saved.wakeTime !== "未说明") {
+          speakText("好，记上了。昨晚" + saved.sleepTime + "睡，早上" + saved.wakeTime + "醒。");
+          return;
+        }
+        speakText("好，先记上。昨晚睡得不好。您还记得几点睡、几点醒吗？");
+        assistantState = { waiting: "sleepTime", record: saved };
+      }
+
+      function parseSleepInfo(text) {
+        return {
+          sleepDateLabel: "昨天晚上到今天早上",
+          sleepTime: extractTimeBefore(text, /睡/),
+          wakeTime: extractTimeBefore(text, /醒|起/),
+          nightWake: /醒了|醒好几次|起夜|睡得不好|没睡好/.test(text) ? "是" : "未说明",
+          dayRest: /白天|中午|下午|午睡|休息/.test(text) ? (/没有休息|没休息/.test(text) ? "否" : "是") : "未说明",
+          dayRestDuration: extractRestDuration(text),
+          medicineStatus: parseMedicineStatus(text),
+          rawText: text,
+          note: text
+        };
+      }
+
+      function extractTimeBefore(text, marker) {
+        var matches = String(text || "").match(/(?:昨晚|昨天晚上|今天早上|早上|晚上)?[零一二两三四五六七八九十\d]{1,3}点半?/g) || [];
+        if (!matches.length) return "未说明";
+        if (marker.test("睡") && /睡/.test(text)) {
+          return matches[0].replace(/^(昨晚|昨天晚上|今天早上|早上|晚上)/, "");
+        }
+        if ((/醒|起/.test(String(marker)) || /醒|起/.test(text)) && matches.length > 1) {
+          return matches[1].replace(/^(昨晚|昨天晚上|今天早上|早上|晚上)/, "");
+        }
+        if (/醒|起/.test(text) && matches.length === 1) return matches[0].replace(/^(昨晚|昨天晚上|今天早上|早上|晚上)/, "");
+        return matches[0].replace(/^(昨晚|昨天晚上|今天早上|早上|晚上)/, "");
+      }
+
+      function extractRestDuration(text) {
+        var match = String(text || "").match(/[零一二两三四五六七八九十\d]+(?:个)?小时|半小时|[零一二两三四五六七八九十\d]+分钟/);
+        return match ? match[0] : "未说明";
+      }
+
+      function handleMedicineIntent(text) {
+        var status = parseMedicineStatus(text);
+        var name = extractMedicineName(text);
+        if (status === "正常" && /医生说/.test(text)) {
+          saveAssistantRecord("用药", { medicineName: name || "未说明", medicineStatus: "正常", rawText: text });
+          speakText("好，记上了。药按医生说的吃了。");
+          return;
+        }
+        if (status !== "未说明" && status !== "正常") {
+          saveAssistantRecord("用药", { medicineName: name || "未说明", medicineStatus: status, rawText: text });
+          speakText("好，我记上。今天药" + status + "了。这个事儿最好让家里人知道。");
+          return;
+        }
+        if (!name) {
+          assistantState = { waiting: "medicineName", record: { medicineStatus: status, rawText: text } };
+          speakText("请问吃的是什么药？");
+          return;
+        }
+        saveAssistantRecord("用药", { medicineName: name, medicineStatus: status, rawText: text });
+        speakText("好，记上了。今天吃了" + name + "。");
+      }
+
+      function parseMedicineStatus(text) {
+        if (/漏吃/.test(text)) return "漏吃";
+        if (/少吃/.test(text)) return "少吃";
+        if (/多吃/.test(text)) return "多吃";
+        if (/按医生|医生说|正常/.test(text)) return "正常";
+        return "未说明";
+      }
+
+      function extractMedicineName(text) {
+        var match = String(text || "").match(/(?:吃了|吃的|记录用药)?([\u4e00-\u9fa5A-Za-z]{2,12})(?:吃了|一片|两片|二片|半片|了)?/);
+        if (/二甲双胍/.test(text)) return "二甲双胍";
+        if (/利格列汀/.test(text)) return "利格列汀";
+        if (!match) return "";
+        var name = match[1].replace(/今天|药|我|吃了|记录|用药|按医生|说的|少吃|多吃|漏吃/g, "");
+        return name.length >= 2 ? name : "";
+      }
+
+      function speakTodaySummary() {
+        var today = formatDate(new Date());
+        var records = getLocalRecords().filter(function (record) {
+          return record.recordDate === today || String(record.createdAt || "").slice(0, 10) === today;
+        });
+        if (!records.length) {
+          speakText("今天还没记东西。可以先说，我测血糖了，或者昨晚睡得怎么样。");
+          return;
+        }
+        var sugar = getRecordsForAssistant("血糖").filter(function (record) { return record.recordDate === today; });
+        var sleep = getRecordsForAssistant("睡眠").filter(function (record) { return record.recordDate === today; })[0];
+        var medicine = getRecordsForAssistant("用药").filter(function (record) { return record.recordDate === today; })[0];
+        var parts = [];
+        if (sugar.length) {
+          parts.push("今天记了" + countToChinese(sugar.length) + "回血糖。" + sugar.slice(0, 3).map(function (record) {
+            return (record.mealRelation !== "未说明" ? record.mealRelation : "") + record.bloodSugarValue;
+          }).join("，") + "。");
+        }
+        if (sleep) parts.push("睡眠也记了，昨晚" + sleep.sleepTime + "睡，早上" + sleep.wakeTime + "醒。");
+        if (medicine) parts.push(medicine.medicineStatus === "正常" ? "药是按医生说的吃的。" : "用药情况是" + medicine.medicineStatus + "。");
+        speakText(parts.length ? parts.join("") : "今天还没记东西。可以先说，我测血糖了，或者昨晚睡得怎么样。");
+      }
+
+      function saveAssistantRecord(type, data) {
+        var now = new Date();
+        var record = Object.assign({
+          elderId: CONFIG.elderId,
+          family_key: CONFIG.family_key,
+          recordType: type,
+          recordDate: formatDate(now),
+          recordTime: formatTime(now),
+          createdAt: now.toISOString(),
+          createdAtMs: now.getTime()
+        }, data || {});
+        saveLocalRecord(record);
+        return record;
+      }
+
+      function getRecordsForAssistant(type) {
+        return getLocalRecords().filter(function (record) {
+          if (type === "血糖") return record.recordType === "血糖" || record.bloodSugarValue;
+          return record.recordType === type;
+        }).map(function (record) {
+          return Object.assign({
+            mealRelation: record.mealRelation || "未说明",
+            bloodSugarValue: record.bloodSugarValue || "未记录",
+            sleepTime: record.sleepTime || "未说明",
+            wakeTime: record.wakeTime || "未说明",
+            medicineStatus: record.medicineStatus || "未说明"
+          }, record);
+        });
+      }
+
+      function countToChinese(count) {
+        return ["零", "一", "两", "三", "四", "五", "六", "七", "八", "九", "十"][count] || String(count);
+      }
+
+      function addDays(date, days) {
+        var next = new Date(date);
+        next.setDate(next.getDate() + days);
+        return next;
       }
 
       function listenForStep(step, isStartRetry) {
@@ -1900,9 +2495,12 @@
       }
 
       startBtn.addEventListener("click", startSession);
+      assistantEntryBtn.addEventListener("click", openAssistant);
       againBtn.addEventListener("click", startSession);
       recipeBtn.addEventListener("click", showTodayRecipe);
       broadcastBtn.addEventListener("click", speakTodayBroadcast);
+      assistantTalkBtn.addEventListener("click", startAssistantListening);
+      assistantHomeBtn.addEventListener("click", returnHome);
       questionHomeBtn.addEventListener("click", returnHome);
       completeHomeBtn.addEventListener("click", returnHome);
       recipeTopHomeBtn.addEventListener("click", returnHome);
