@@ -1809,16 +1809,8 @@
 
       function getAssistantFollowUpReply(text) {
         fallbackCount = 0;
-        if (assistantState.type === "bloodSugar" && assistantState.waitingFor === "value") {
-          var sugar = parseAssistantNumber(text);
-          if (sugar === null) return "请说血糖数值。";
-          var sugarRecord = {
-            mealRelation: assistantState.partial.period || "未说明",
-            bloodSugarValue: sugar,
-            rawText: text
-          };
-          assistantState = null;
-          return saveSugarAndBuildReply(sugarRecord);
+        if (assistantState.type === "bloodSugar") {
+          return handleBloodSugarStep(text);
         }
         if (assistantState.type === "medicine" && assistantState.waitingFor === "name") {
           var name = extractMedicineName(text) || text;
@@ -1830,14 +1822,8 @@
           assistantState = null;
           return "好，记上了。今天吃了" + name + "。";
         }
-        if (assistantState.type === "sleep" && assistantState.waitingFor === "time") {
-          var sleep = parseSleepInfo(text);
-          saveAssistantRecord("睡眠", sleep);
-          assistantState = null;
-          if (sleep.sleepTime !== "未说明" || sleep.wakeTime !== "未说明") {
-            return "好，记上了。昨晚" + sleep.sleepTime + "睡，早上" + sleep.wakeTime + "醒。";
-          }
-          return "好，先记上。";
+        if (assistantState.type === "sleep") {
+          return handleSleepStep(text);
         }
         assistantState = null;
         return "刚才没听清，您再说一遍。";
@@ -1846,22 +1832,104 @@
       function getSugarReply(text) {
         var sugar = parseSugarNumberFromRecordText(text);
         var period = parseAssistantPeriod(text);
-        if (sugar === null) {
-          assistantState = {
-            type: "bloodSugar",
-            waitingFor: "value",
-            partial: {
-              period: period || "",
-              value: ""
-            }
-          };
-          return "请说血糖数值。";
+        if (sugar === null && !period) {
+          assistantState = createBloodSugarState("period", { rawText: text });
+          return "好，咱们记血糖。是空腹、饭前、饭后，还是睡前？";
         }
-        return saveSugarAndBuildReply({
-          mealRelation: period || "未说明",
-          bloodSugarValue: sugar,
+        if (sugar === null) {
+          assistantState = createBloodSugarState("value", {
+            period: period,
+            rawText: text
+          });
+          return "血糖多少？";
+        }
+        if (!period) {
+          assistantState = createBloodSugarState("period", {
+            value: sugar,
+            rawText: text
+          });
+          return "是空腹、饭前、饭后，还是睡前？";
+        }
+        assistantState = createBloodSugarState("medication", {
+          period: period,
+          value: sugar,
           rawText: text
         });
+        return "好，" + period + "血糖" + formatSugarForSpeech(sugar) + "。今天按医生说的吃药或者打针了吗？";
+      }
+
+      function createBloodSugarState(step, partial) {
+        return {
+          type: "bloodSugar",
+          step: step,
+          partial: Object.assign({
+            period: "",
+            value: "",
+            medication: "",
+            rawText: "",
+            answersRaw: []
+          }, partial || {})
+        };
+      }
+
+      function handleBloodSugarStep(text) {
+        var state = assistantState;
+        var partial = state.partial || {};
+        partial.answersRaw = partial.answersRaw || [];
+        partial.answersRaw.push(text);
+
+        if (state.step === "period") {
+          var period = parseAssistantPeriod(text);
+          if (!period) return "是空腹、饭前、饭后，还是睡前？";
+          partial.period = period;
+          if (partial.value) {
+            state.step = "medication";
+            return "今天按医生说的吃药或者打针了吗？";
+          }
+          state.step = "value";
+          return "血糖多少？";
+        }
+
+        if (state.step === "value") {
+          var sugar = parseAssistantNumber(text);
+          if (sugar === null) return "请说血糖数值。";
+          partial.value = sugar;
+          state.step = "medication";
+          return "今天按医生说的吃药或者打针了吗？";
+        }
+
+        if (state.step === "medication") {
+          var medication = parseMedicationInjectionStatus(text);
+          partial.medication = medication;
+          return finishBloodSugarFlow(partial, text);
+        }
+
+        assistantState = null;
+        return "刚才没听清，您再说一遍。";
+      }
+
+      function finishBloodSugarFlow(partial, lastText) {
+        assistantState = null;
+        var period = partial.period || "未说明";
+        var sugar = partial.value;
+        var medication = partial.medication || "未说明";
+        saveAssistantRecord("血糖", {
+          mealRelation: period,
+          bloodSugarValue: String(sugar),
+          medicationStatus: medication,
+          rawText: [partial.rawText].concat(partial.answersRaw || [], [lastText]).filter(Boolean).join("；")
+        });
+        if (medication !== "未说明") {
+          saveAssistantRecord("用药", {
+            medicineName: "未说明",
+            medicineStatus: medication,
+            rawText: lastText
+          });
+        }
+        var periodText = period === "未说明" ? "" : period;
+        var reply = "好，记上了。" + periodText + "血糖" + formatSugarForSpeech(sugar) + "。今天用药情况也记上了。";
+        if (isMedicationAbnormal(medication)) reply += "这个事儿最好让家里人知道。";
+        return reply;
       }
 
       function parseSugarNumberFromRecordText(text) {
@@ -1928,20 +1996,120 @@
       }
 
       function getSleepReply(text) {
+        if (isSleepStartIntent(text)) {
+          assistantState = createSleepState("quality", { rawText: text });
+          return "好，咱们记睡眠。昨天晚上睡得怎么样？";
+        }
         var info = parseSleepInfo(text);
-        var saved = saveAssistantRecord("睡眠", info);
-        if (/睡得不好|没睡好|醒了好几次/.test(text) && saved.sleepTime === "未说明" && saved.wakeTime === "未说明") {
-          assistantState = { type: "sleep", waitingFor: "time", partial: saved };
-          return "好，先记上。昨晚睡得不好。您还记得几点睡、几点醒吗？";
+        var partial = {
+          quality: parseSleepQuality(text),
+          sleepTime: info.sleepTime !== "未说明" ? info.sleepTime : "",
+          wakeTime: info.wakeTime !== "未说明" ? info.wakeTime : "",
+          dayRest: info.dayRest !== "未说明" ? buildDayRestText(info) : "",
+          medication: info.medicineStatus !== "未说明" ? info.medicineStatus : "",
+          note: text,
+          rawText: text,
+          answersRaw: [text]
+        };
+        if (!partial.quality) {
+          assistantState = createSleepState("quality", partial);
+          return "昨晚睡得还行吗？";
         }
-        if (saved.dayRest !== "未说明" && saved.dayRestDuration !== "未说明") return "好，记上了。白天休息" + saved.dayRestDuration + "。";
-        if (saved.dayRest !== "未说明") return "好，白天休息也记上了。";
-        if (saved.medicineStatus !== "未说明") {
-          return "好，记上了。昨天用药情况是" + saved.medicineStatus + "。" + (saved.medicineStatus !== "正常" ? "这个事儿最好让家里人知道。" : "");
+        if (!partial.sleepTime || !partial.wakeTime) {
+          assistantState = createSleepState("time", partial);
+          return "大概几点睡的，几点醒的？";
         }
-        if (saved.sleepTime !== "未说明" || saved.wakeTime !== "未说明") return "好，记上了。昨晚" + saved.sleepTime + "睡，早上" + saved.wakeTime + "醒。";
-        assistantState = { type: "sleep", waitingFor: "time", partial: saved };
-        return "好，先记上。昨晚睡得不好。您还记得几点睡、几点醒吗？";
+        if (!partial.dayRest) {
+          assistantState = createSleepState("dayRest", partial);
+          return "白天睡没睡？睡了多久？";
+        }
+        if (!partial.medication) {
+          assistantState = createSleepState("medication", partial);
+          return "昨天药按医生说的吃了吗？";
+        }
+        return finishSleepFlow(partial, text);
+      }
+
+      function createSleepState(step, partial) {
+        return {
+          type: "sleep",
+          step: step,
+          partial: Object.assign({
+            quality: "",
+            sleepTime: "",
+            wakeTime: "",
+            dayRest: "",
+            medication: "",
+            note: "",
+            rawText: "",
+            answersRaw: []
+          }, partial || {})
+        };
+      }
+
+      function handleSleepStep(text) {
+        var state = assistantState;
+        var partial = state.partial || {};
+        partial.answersRaw = partial.answersRaw || [];
+        partial.answersRaw.push(text);
+
+        if (state.step === "quality") {
+          partial.quality = parseSleepQuality(text) || text;
+          state.step = "time";
+          return "大概几点睡的，几点醒的？";
+        }
+
+        if (state.step === "time") {
+          var info = parseSleepInfo(text);
+          if (info.sleepTime !== "未说明") partial.sleepTime = info.sleepTime;
+          if (info.wakeTime !== "未说明") partial.wakeTime = info.wakeTime;
+          if (!partial.sleepTime || !partial.wakeTime) return "大概几点睡的，几点醒的？";
+          state.step = "dayRest";
+          return "白天睡没睡？睡了多久？";
+        }
+
+        if (state.step === "dayRest") {
+          var dayInfo = parseSleepInfo(text);
+          partial.dayRest = buildDayRestText(dayInfo) || text;
+          state.step = "medication";
+          return "昨天药按医生说的吃了吗？";
+        }
+
+        if (state.step === "medication") {
+          partial.medication = parseMedicationInjectionStatus(text);
+          return finishSleepFlow(partial, text);
+        }
+
+        assistantState = null;
+        return "刚才没听清，您再说一遍。";
+      }
+
+      function finishSleepFlow(partial, lastText) {
+        assistantState = null;
+        var medication = partial.medication || "未说明";
+        saveAssistantRecord("睡眠", {
+          sleepDateLabel: "昨天晚上到今天早上",
+          sleepQuality: partial.quality || "未说明",
+          sleepTime: partial.sleepTime || "未说明",
+          wakeTime: partial.wakeTime || "未说明",
+          dayRest: partial.dayRest || "未说明",
+          medicineStatus: medication,
+          rawText: [partial.rawText].concat(partial.answersRaw || [], [lastText]).filter(Boolean).join("；"),
+          note: partial.note || partial.rawText || ""
+        });
+        if (medication !== "未说明") {
+          saveAssistantRecord("用药", {
+            medicineName: "未说明",
+            medicineStatus: medication,
+            rawText: lastText
+          });
+        }
+        var reply = "好，记上了。昨晚睡眠情况记好了。";
+        if (partial.sleepTime && partial.wakeTime) {
+          reply = "好，记上了。昨晚" + partial.sleepTime + "睡，早上" + partial.wakeTime + "醒。白天休息情况也记上了。";
+        }
+        if (isMedicationAbnormal(medication)) reply += "这个事儿最好让家里人知道。";
+        return reply;
       }
 
       function getMedicineReply(text) {
@@ -2376,11 +2544,42 @@
       }
 
       function parseMedicineStatus(text) {
-        if (/漏吃|忘吃/.test(text)) return "漏吃";
+        if (/没吃|未吃/.test(text)) return "未吃";
+        if (/漏吃|忘吃|忘了/.test(text)) return "漏吃";
         if (/少吃/.test(text)) return "少吃";
         if (/多吃/.test(text)) return "多吃";
-        if (/按医生|医生说|医嘱|正常/.test(text)) return "正常";
+        if (/没打|未打/.test(text)) return "未打";
+        if (/漏打|忘打/.test(text)) return "漏打";
+        if (/少打/.test(text)) return "少打";
+        if (/多打/.test(text)) return "多打";
+        if (/按医生|医生说|医嘱|正常|吃了|打了|用了/.test(text)) return "正常";
         return "未说明";
+      }
+
+      function parseMedicationInjectionStatus(text) {
+        return parseMedicineStatus(String(text || ""));
+      }
+
+      function isMedicationAbnormal(status) {
+        return /未吃|漏吃|少吃|多吃|未打|漏打|少打|多打/.test(String(status || ""));
+      }
+
+      function isSleepStartIntent(text) {
+        return /记录睡眠|我记录睡眠|我要记睡眠|记一下睡眠|睡眠记录/.test(text);
+      }
+
+      function parseSleepQuality(text) {
+        var value = String(text || "");
+        if (/挺好|很好|睡得好|还行|可以|不错/.test(value)) return "还行";
+        if (/不好|没睡好|没怎么睡|折腾|醒了好几回|一晚上没怎么睡|半夜醒/.test(value)) return "不好";
+        return "";
+      }
+
+      function buildDayRestText(info) {
+        if (!info || info.dayRest === "未说明") return "";
+        if (info.dayRest === "否") return "没睡";
+        if (info.dayRestDuration && info.dayRestDuration !== "未说明") return "睡了" + info.dayRestDuration;
+        return "睡了";
       }
 
       function extractMedicineName(text) {
