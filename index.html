@@ -2834,6 +2834,11 @@
           createdAtMs: now.getTime()
         }, data || {});
         saveLocalRecord(record);
+        try {
+          uploadRecord(record);
+        } catch (error) {
+          console.warn("assistant record upload failed", error);
+        }
         return record;
       }
 
@@ -3185,9 +3190,14 @@
             return [];
           });
         }).then(function () {
-          setSyncStatus("云端同步成功", "success");
+          if (completeScreen.classList.contains("active")) {
+            setSyncStatus("云端同步成功", "success");
+          }
         }).catch(function (error) {
-          setSyncStatus("已本地保存，上传失败：" + getErrorMessage(error), "fail");
+          console.warn("supabase upload failed", error);
+          if (completeScreen.classList.contains("active")) {
+            setSyncStatus("已本地保存，上传失败：" + getErrorMessage(error), "fail");
+          }
         });
       }
 
@@ -3207,8 +3217,19 @@
             bloodSugarTime: record.bloodSugarTime,
             mealRelation: record.mealRelation,
             bloodSugarValue: record.bloodSugarValue,
+            bloodSugarValueText: record.bloodSugarValueText,
             systolicPressure: record.systolicPressure,
             diastolicPressure: record.diastolicPressure,
+            recordType: record.recordType,
+            sleepQuality: record.sleepQuality,
+            sleepTime: record.sleepTime,
+            wakeTime: record.wakeTime,
+            sleepTimeText: record.sleepTimeText,
+            dayRest: record.dayRest,
+            medicineTaken: record.medicineTaken,
+            medicineDetail: record.medicineDetail,
+            medicationStatus: record.medicationStatus,
+            rawText: record.rawText,
             answersRaw: record.answersRaw
           }),
           created_at: record.createdAt
