@@ -1810,7 +1810,12 @@
       }
 
       function handleAssistantState(text) {
-        return getAssistantFollowUpReply(text);
+        var raw = String(text || "").trim();
+        if (!raw) return "刚才没听清，您再说一遍。";
+        fallbackCount = 0;
+        if (assistantState.type === "sleep") return handleSleepState(raw);
+        if (assistantState.type === "bloodSugar") return handleBloodSugarState(raw);
+        return getAssistantFollowUpReply(raw);
       }
 
       function getAssistantFollowUpReply(text) {
@@ -1855,7 +1860,7 @@
           });
           return "是空腹、饭前、饭后，还是睡前？";
         }
-        assistantState = createBloodSugarState("medication", {
+        assistantState = createBloodSugarState("medicineTaken", {
           period: period,
           value: sugar,
           valueText: String(sugar),
@@ -1892,6 +1897,10 @@
       }
 
       function handleBloodSugarStep(text) {
+        return handleBloodSugarState(text);
+      }
+
+      function handleBloodSugarState(text) {
         var state = assistantState;
         var partial = state.partial || {};
         partial.answersRaw = partial.answersRaw || [];
@@ -1913,10 +1922,13 @@
         }
 
         if (state.step === "medicineTaken") {
+          partial.medicineTaken = text;
           if (isMedicationDirectAbnormalAnswer(text)) {
             partial.medicineTaken = "未按处方";
             partial.medicineDetail = text;
-            return finishBloodSugarFlow(partial, text, true);
+            saveBloodSugarAssistantRecord(partial, text);
+            assistantState = null;
+            return "好，记上了。今天用药情况也记上了。这个事儿最好让家里人知道。";
           }
           if (isMedicationNotAsPrescribedAnswer(text)) {
             partial.medicineTaken = "未按处方";
@@ -1925,19 +1937,48 @@
           }
           if (isMedicationNormalAnswer(text)) {
             partial.medicineTaken = "正常";
-            return finishBloodSugarFlow(partial, text, false);
+            saveBloodSugarAssistantRecord(partial, text);
+            assistantState = null;
+            return "好，记上了。血糖和用药情况都记好了。";
           }
           partial.medicineTaken = text;
-          return finishBloodSugarFlow(partial, text);
+          saveBloodSugarAssistantRecord(partial, text);
+          assistantState = null;
+          return "好，记上了。血糖和用药情况都记好了。";
         }
 
         if (state.step === "medicineDetail") {
           partial.medicineDetail = text;
-          return finishBloodSugarFlow(partial, text, true);
+          saveBloodSugarAssistantRecord(partial, text);
+          assistantState = null;
+          return "好，记上了。今天用药情况也记上了。这个事儿最好让家里人知道。";
         }
 
         assistantState = null;
         return "刚才没听清，您再说一遍。";
+      }
+
+      function saveBloodSugarAssistantRecord(partial, lastText) {
+        var period = partial.period || "未说明";
+        var sugar = partial.value || partial.valueText || "未说明";
+        var medicineTaken = partial.medicineTaken || "未说明";
+        var medicineDetail = partial.medicineDetail || "";
+        saveAssistantRecord("血糖", {
+          mealRelation: period,
+          bloodSugarValue: String(sugar),
+          bloodSugarValueText: partial.valueText || String(sugar),
+          medicineTaken: medicineTaken,
+          medicineDetail: medicineDetail,
+          medicationStatus: medicineDetail || medicineTaken,
+          rawText: [partial.rawText].concat(partial.answersRaw || [], [lastText]).filter(Boolean).join("；")
+        });
+        if (medicineTaken !== "未说明" || medicineDetail) {
+          saveAssistantRecord("用药", {
+            medicineName: "未说明",
+            medicineStatus: medicineDetail || medicineTaken,
+            rawText: lastText
+          });
+        }
       }
 
       function finishBloodSugarFlow(partial, lastText, forceFamilyNotice) {
@@ -2059,9 +2100,9 @@
           assistantState = createSleepState("dayRest", partial);
           return "白天睡没睡？睡了多久？";
         }
-        if (!partial.medication) {
-          assistantState = createSleepState("medication", partial);
-          return "昨天药按医生说的吃了吗？";
+        if (!partial.medicineTaken) {
+          assistantState = createSleepState("medicineTaken", partial);
+          return "昨天药按医生的处方吃了吗？";
         }
         return finishSleepFlow(partial, text);
       }
@@ -2072,8 +2113,6 @@
           step: step,
           partial: Object.assign({
             quality: "",
-            sleepTime: "",
-            wakeTime: "",
             sleepTimeText: "",
             dayRest: "",
             medicineTaken: "",
@@ -2087,11 +2126,22 @@
       }
 
       function startSleepFlow(text) {
-        assistantState = createSleepState("quality", { rawText: text });
+        assistantState = createSleepState("quality", {
+          rawText: text,
+          quality: "",
+          sleepTimeText: "",
+          dayRest: "",
+          medicineTaken: "",
+          medicineDetail: ""
+        });
         return "好，咱们记睡眠。昨天晚上睡得怎么样？";
       }
 
       function handleSleepStep(text) {
+        return handleSleepState(text);
+      }
+
+      function handleSleepState(text) {
         var state = assistantState;
         var partial = state.partial || {};
         partial.answersRaw = partial.answersRaw || [];
@@ -2104,9 +2154,6 @@
         }
 
         if (state.step === "time") {
-          var times = parseSleepTime(text);
-          if (times.sleepTime) partial.sleepTime = times.sleepTime;
-          if (times.wakeTime) partial.wakeTime = times.wakeTime;
           partial.sleepTimeText = text;
           partial.note = (partial.note || "") + " 睡眠时间：" + text;
           state.step = "dayRest";
@@ -2115,15 +2162,18 @@
 
         if (state.step === "dayRest") {
           partial.dayRest = text;
-          state.step = "medication";
-          return "昨天药按医生说的吃了吗？";
+          state.step = "medicineTaken";
+          return "昨天药按医生的处方吃了吗？";
         }
 
-        if (state.step === "medication") {
+        if (state.step === "medicineTaken") {
+          partial.medicineTaken = text;
           if (isMedicationDirectAbnormalAnswer(text)) {
             partial.medicineTaken = "未按处方";
             partial.medicineDetail = text;
-            return finishSleepFlow(partial, text, true);
+            saveSleepAssistantRecord(partial, text);
+            assistantState = null;
+            return "好，记上了。昨天用药情况也记上了。这个事儿最好让家里人知道。";
           }
           if (isMedicationNotAsPrescribedAnswer(text)) {
             partial.medicineTaken = "未按处方";
@@ -2132,19 +2182,48 @@
           }
           if (isMedicationNormalAnswer(text)) {
             partial.medicineTaken = "正常";
-            return finishSleepFlow(partial, text, false);
+            saveSleepAssistantRecord(partial, text);
+            assistantState = null;
+            return "好，记上了。昨晚睡眠情况记好了。";
           }
           partial.medicineTaken = text;
-          return finishSleepFlow(partial, text, false);
+          saveSleepAssistantRecord(partial, text);
+          assistantState = null;
+          return "好，记上了。昨晚睡眠情况记好了。";
         }
 
         if (state.step === "medicineDetail") {
           partial.medicineDetail = text;
-          return finishSleepFlow(partial, text, true);
+          saveSleepAssistantRecord(partial, text);
+          assistantState = null;
+          return "好，记上了。昨天用药情况也记上了。这个事儿最好让家里人知道。";
         }
 
         assistantState = null;
         return "刚才没听清，您再说一遍。";
+      }
+
+      function saveSleepAssistantRecord(partial, lastText) {
+        var medicineTaken = partial.medicineTaken || "未说明";
+        var medicineDetail = partial.medicineDetail || "";
+        saveAssistantRecord("睡眠", {
+          sleepDateLabel: "昨天晚上到今天早上",
+          sleepQuality: partial.quality || "未说明",
+          sleepTimeText: partial.sleepTimeText || "未说明",
+          dayRest: partial.dayRest || "未说明",
+          medicineTaken: medicineTaken,
+          medicineDetail: medicineDetail,
+          medicineStatus: medicineDetail || medicineTaken,
+          rawText: [partial.rawText].concat(partial.answersRaw || [], [lastText]).filter(Boolean).join("；"),
+          note: partial.note || partial.rawText || ""
+        });
+        if (medicineTaken !== "未说明" || medicineDetail) {
+          saveAssistantRecord("用药", {
+            medicineName: "未说明",
+            medicineStatus: medicineDetail || medicineTaken,
+            rawText: lastText
+          });
+        }
       }
 
       function finishSleepFlow(partial, lastText, forceFamilyNotice) {
@@ -2237,16 +2316,19 @@
       }
 
       function handleAssistantInput(text) {
+        if (assistantState) {
+          var stateRaw = String(text || "").trim();
+          assistantUserText.textContent = stateRaw || "没听清";
+          if (!stateRaw) {
+            speakText("刚才没听清，您再说一遍。");
+            return "刚才没听清，您再说一遍。";
+          }
+          var stateReply = handleAssistantState(stateRaw);
+          speakText(stateReply);
+          return stateReply;
+        }
         var raw = String(text || "").trim();
         assistantUserText.textContent = raw || "没听清";
-        if (assistantState) {
-          if (!raw) {
-            speakText("刚才没听清，您再说一遍。");
-            return;
-          }
-          speakText(handleAssistantState(raw));
-          return;
-        }
         if (!raw) {
           speakText("刚才没听清，您再说一遍。");
           return;
@@ -2625,7 +2707,7 @@
       }
 
       function isMedicationNotAsPrescribedAnswer(text) {
-        return /没有|没按|没按处方|不是|没正常吃|没照医生说的吃/.test(String(text || ""));
+        return /没有|^没$|没按|没按处方|不是|忘了|没正常吃|没照医生说的吃/.test(String(text || ""));
       }
 
       function isMedicationDirectAbnormalAnswer(text) {
