@@ -711,6 +711,103 @@
       margin-top: auto;
     }
 
+    .voice-home {
+      justify-content: center;
+      gap: 28px;
+      text-align: center;
+      min-height: calc(100vh - 44px);
+    }
+
+    .voice-home-title {
+      color: var(--green-dark);
+      font-size: clamp(54px, 16vw, 92px);
+      line-height: 1.08;
+      font-weight: 900;
+      letter-spacing: 0;
+    }
+
+    .voice-home-subtitle {
+      color: var(--text);
+      font-size: clamp(28px, 8vw, 44px);
+      line-height: 1.25;
+      font-weight: 900;
+    }
+
+    .voice-start-button {
+      width: min(100%, 560px);
+      min-height: min(58vh, 430px);
+      border: 0;
+      border-radius: 34px;
+      padding: 34px 22px;
+      background: linear-gradient(145deg, #21a85b, #08723d);
+      color: var(--white);
+      box-shadow: 0 12px 0 var(--green-dark);
+      font-size: clamp(50px, 15vw, 88px);
+      line-height: 1.12;
+      font-weight: 900;
+      touch-action: manipulation;
+    }
+
+    .voice-start-button:active,
+    .mic-button:active {
+      transform: translateY(6px);
+      box-shadow: 0 5px 0 var(--green-dark);
+    }
+
+    .small-recipe-button {
+      width: min(100%, 420px);
+      min-height: 78px;
+      border: 4px solid #ee7b16;
+      border-radius: 999px;
+      padding: 14px 18px;
+      background: var(--white);
+      color: #d45d08;
+      font-size: clamp(26px, 7vw, 40px);
+      line-height: 1.15;
+      font-weight: 900;
+    }
+
+    .hidden-legacy {
+      display: none;
+    }
+
+    .assistant-voice-screen {
+      justify-content: center;
+      gap: 22px;
+      text-align: center;
+    }
+
+    .mic-button {
+      width: min(78vw, 360px);
+      height: min(78vw, 360px);
+      min-height: 260px;
+      border: 0;
+      border-radius: 50%;
+      margin: 0 auto;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 35% 28%, #75d987, #16a054 58%, #08723d);
+      color: var(--white);
+      box-shadow: 0 14px 0 var(--green-dark), 0 22px 38px rgba(8, 78, 43, 0.24);
+      font-size: clamp(34px, 10vw, 58px);
+      line-height: 1.18;
+      font-weight: 900;
+    }
+
+    .mic-button span {
+      display: block;
+      font-size: clamp(74px, 22vw, 128px);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .assistant-short-tip {
+      color: var(--muted);
+      font-size: clamp(26px, 7vw, 40px);
+      line-height: 1.25;
+      font-weight: 900;
+    }
+
     .more-panel {
       border: 0;
       border-radius: 24px;
@@ -823,90 +920,16 @@
 </head>
 <body>
   <main class="app">
-    <section id="homeScreen" class="screen home-screen active" aria-label="首页">
-      <header class="home-header">
-        <div class="broadcast-head">
-          <div>
-            <div class="broadcast-title">今日播报</div>
-            <div class="broadcast-desc">点一下，听天气、阳历和阴历</div>
-          </div>
-          <div class="broadcast-icon" aria-hidden="true">📣</div>
-        </div>
-        <div class="broadcast-weather-icons" aria-label="天气图标">
-          <div class="weather-icon-card">
-            <div class="weather-symbol" aria-hidden="true">☀️</div>
-            <div class="weather-name">晴朗</div>
-          </div>
-          <div class="weather-icon-card">
-            <div class="weather-symbol" aria-hidden="true">⛅</div>
-            <div class="weather-name">多云</div>
-          </div>
-          <div class="weather-icon-card">
-            <div class="weather-symbol" aria-hidden="true">🌧️</div>
-            <div class="weather-name">下雨</div>
-          </div>
-        </div>
-        <button id="broadcastBtn" class="broadcast-button" type="button">播报今天</button>
-      </header>
-
-      <div class="feature-grid">
-        <section class="health-card record-card" aria-label="血糖记录">
-          <div class="health-card-top">
-            <div class="home-illustration" aria-hidden="true">🩸📟</div>
-            <div>
-              <div class="feature-title">血糖记录</div>
-              <div class="feature-desc">点一下，说血压、血糖和用药</div>
-            </div>
-          </div>
-          <button id="startBtn" class="start-button" type="button">开始记录</button>
-          <button id="assistantEntryBtn" class="big-button assistant-button" type="button">开始对话</button>
-        </section>
-
-        <section class="health-card recipe-card-home" aria-label="今日食谱">
-          <div class="health-card-top">
-            <div class="home-illustration" aria-hidden="true">🍲🥬</div>
-            <div>
-              <div class="feature-title">今日食谱</div>
-              <div id="todayRecipePreview" class="feature-desc">推荐适合控糖的家常饭菜</div>
-            </div>
-          </div>
-          <button id="recipeBtn" class="big-button recipe-button" type="button">查看食谱</button>
-        </section>
+    <section id="homeScreen" class="screen voice-home active" aria-label="首页">
+      <div class="voice-home-title">血糖小助手</div>
+      <div class="voice-home-subtitle">点一下，说血糖、天气、日期、睡眠和用药</div>
+      <button id="assistantEntryBtn" class="voice-start-button" type="button">开始说话</button>
+      <button id="recipeBtn" class="small-recipe-button" type="button">今日食谱</button>
+      <div class="hidden-legacy" aria-hidden="true">
+        <button id="startBtn" type="button">开始记录</button>
+        <button id="broadcastBtn" type="button">播报今天</button>
+        <div id="todayRecipePreview"></div>
       </div>
-
-      <section class="more-panel" aria-label="更多功能">
-        <div class="more-title"><span aria-hidden="true">▦</span> 更多功能</div>
-        <div class="more-grid">
-          <div class="more-item">
-            <div class="more-icon" aria-hidden="true">🌙</div>
-            <strong>睡眠监测</strong>
-            <span>暂未开放</span>
-          </div>
-        </div>
-      </section>
-
-      <nav class="bottom-nav" aria-label="底部导航展示">
-        <div class="nav-item active">
-          <div class="nav-icon" aria-hidden="true">🏠</div>
-          <div>首页</div>
-        </div>
-        <div class="nav-item">
-          <div class="nav-icon" aria-hidden="true">🕘</div>
-          <div>记录</div>
-        </div>
-        <div class="nav-item voice-main">
-          <div class="nav-icon" aria-hidden="true">🎙️</div>
-          <div>语音记录</div>
-        </div>
-        <div class="nav-item">
-          <div class="nav-icon" aria-hidden="true">📊</div>
-          <div>趋势</div>
-        </div>
-        <div class="nav-item">
-          <div class="nav-icon" aria-hidden="true">👤</div>
-          <div>我的</div>
-        </div>
-      </nav>
     </section>
 
     <section id="questionScreen" class="screen center" aria-label="语音问答">
@@ -915,19 +938,13 @@
       <button id="questionHomeBtn" class="return-button" type="button">返回首页</button>
     </section>
 
-    <section id="assistantScreen" class="screen assistant-screen" aria-label="血糖小助手">
-      <div class="assistant-panel">
-        <div class="assistant-title">血糖小助手</div>
-        <div class="assistant-hint">您可以说：</div>
-      </div>
-      <div class="assistant-example">
-        <div class="assistant-example-title">“我测血糖了”</div>
-        <div class="assistant-example-title">“今天几号”</div>
-        <div class="assistant-example-title">“今天天气咋样”</div>
-        <div class="assistant-example-title">“昨晚睡得怎么样”</div>
-        <div class="assistant-example-title">“今天药吃了吗”</div>
-        <div class="assistant-example-title">“今日总结”</div>
-      </div>
+    <section id="assistantScreen" class="screen assistant-voice-screen" aria-label="血糖小助手">
+      <div class="assistant-title">血糖小助手</div>
+      <button id="assistantTalkBtn" class="mic-button" type="button">
+        <span aria-hidden="true">🎙️</span>
+        按一下说话
+      </button>
+      <div class="assistant-short-tip">您可以说：饭后血糖十二点五</div>
       <div class="assistant-dialog">
         <div class="assistant-label">您刚才说：</div>
         <div id="assistantUserText" class="assistant-line">还没开始说话</div>
@@ -935,7 +952,6 @@
         <div id="assistantReplyText" class="assistant-line">点下面按钮，说一句话就行。</div>
       </div>
       <div class="assistant-actions">
-        <button id="assistantTalkBtn" class="big-button assistant-button" type="button">点一下说话</button>
         <button id="assistantHomeBtn" class="return-button" type="button">返回首页</button>
       </div>
     </section>
@@ -1434,6 +1450,11 @@
         assistantReplyText.textContent = text;
         if (!("speechSynthesis" in window)) return;
         window.speechSynthesis.cancel();
+        if (window.speechSynthesis.resume) {
+          try {
+            window.speechSynthesis.resume();
+          } catch (error) {}
+        }
         var utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "zh-CN";
         utterance.rate = 0.82;
@@ -1444,6 +1465,9 @@
           return /^zh/i.test(item.lang) && /female|xiaoxiao|huihui|yaoyao|tingting|hanhan|xiaoyi|女|晓|瑶|婷婷|慧/i.test(item.name);
         }) || chooseChineseVoice();
         if (voice) utterance.voice = voice;
+        utterance.onerror = function (event) {
+          console.log("speechSynthesis error", event && event.error ? event.error : event);
+        };
         window.speechSynthesis.speak(utterance);
       }
 
@@ -1451,18 +1475,25 @@
         stopAllAudioWork();
         assistantState = null;
         assistantUserText.textContent = "还没开始说话";
-        assistantReplyText.textContent = "点下面按钮，说一句话就行。";
+        assistantReplyText.textContent = "我在，您说吧。";
         showScreen("assistant");
+        speakText("我在，您说吧。");
       }
 
       function startAssistantListening() {
         stopAllAudioWork();
+        assistantUserText.textContent = "正在听……";
+        speakText("您说吧。");
+        window.setTimeout(beginAssistantRecognition, 650);
+      }
+
+      function beginAssistantRecognition() {
         var Recognition = getRecognitionConstructor();
         if (!Recognition) {
           speakText("这个浏览器听不清语音。可以换安卓 Chrome 试试。");
           return;
         }
-        assistantUserText.textContent = "正在听，请说话";
+        assistantUserText.textContent = "正在听……";
         assistantReplyText.textContent = "我听着呢。";
         var recognition = new Recognition();
         activeRecognition = recognition;
@@ -1628,11 +1659,6 @@
           speakText("请说血糖数值。");
           return;
         }
-        if (record.mealRelation === "未说明") {
-          assistantState = { waiting: "sugarPeriod", record: record };
-          speakText("请问是空腹、饭前、饭后，还是睡前？");
-          return;
-        }
         finishAssistantSugarRecord(record);
       }
 
@@ -1644,11 +1670,31 @@
           rawText: record.rawText
         });
         var periodText = saved.mealRelation === "未说明" ? "" : saved.mealRelation;
-        var reply = "好，记上了。" + periodText + "血糖" + saved.bloodSugarValue + "。";
+        var reply = "好，记上了。" + periodText + "血糖" + formatSugarForSpeech(saved.bloodSugarValue) + "。";
         var value = Number(saved.bloodSugarValue);
         if (value >= 10) reply += "这个数有点高。先别着急，注意少吃甜的。要是连续几次都高，就告诉家里人。";
         if (value > 0 && value <= 3.9) reply += "这个数有点低。要是心慌、出汗、手抖，赶紧告诉家里人。";
         speakText(reply);
+      }
+
+      function formatSugarForSpeech(value) {
+        var text = String(value || "");
+        if (text.indexOf(".") === -1) return numberToChinese(Number(text));
+        var parts = text.split(".");
+        return numberToChinese(Number(parts[0])) + "点" + parts[1].split("").map(function (digit) {
+          return numberToChinese(Number(digit));
+        }).join("");
+      }
+
+      function numberToChinese(number) {
+        var map = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+        var value = Number(number);
+        if (!Number.isFinite(value)) return String(number);
+        if (value < 10) return map[value] || String(value);
+        if (value === 10) return "十";
+        if (value < 20) return "十" + (value % 10 ? map[value % 10] : "");
+        if (value < 100) return map[Math.floor(value / 10)] + "十" + (value % 10 ? map[value % 10] : "");
+        return String(value);
       }
 
       function parseAssistantPeriod(text) {
