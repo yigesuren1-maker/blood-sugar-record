@@ -1692,6 +1692,7 @@
           return "好，对话结束。";
         }
         if (isRepeatIntent(text)) return lastAssistantReply || "您可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得咋样。";
+        if (isCorrectionIntent(text)) return getCorrectionReply(text);
         if (isIdentityIntent(text)) return "我是血糖小助手，帮您记血糖、问天气、看日期、记睡眠和用药。";
         if (isPresenceIntent(text)) return "我在呢，您慢慢说。";
         if (isHelpIntent(text)) return "您就像平时说话一样。可以说，饭后血糖十二点五，今天天气咋样，或者昨晚睡得咋样。";
@@ -1710,7 +1711,7 @@
           return "好，我给您打开今日食谱。";
         }
         if (isSugarHistoryIntent(text)) return getSugarHistoryReply(text);
-        return "这个我还不太会。您可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得咋样。";
+        return "我可能没听明白。您可以换个简单说法，比如，测血糖了，今天天气咋样，或者今天几号。";
       }
 
       function normalizeText(text) {
@@ -1739,15 +1740,33 @@
       }
 
       function isIdentityIntent(text) {
-        return hasAny(text, ["你是谁", "你叫啥", "你是干什么的", "你在干什么", "你能干什么", "你都会啥", "你有啥用", "你能帮我干什么", "你是小助手吗"]);
+        return hasAny(text, ["你是谁", "你叫啥", "你是干什么的", "你干什么", "你在干什么", "你能干什么", "你都会啥", "你有啥用", "你能帮我干什么", "你是小助手吗"]);
       }
 
       function isPresenceIntent(text) {
-        return hasAny(text, ["你在吗", "听见没", "能听见吗", "你听着没", "你怎么不说话", "你怎么没声", "还在吗"]);
+        return hasAny(text, ["你在吗", "听见没", "能听见吗", "你听着没", "你怎么不说话", "你咋不说话", "你怎么没声", "你咋没声", "还在吗"]);
       }
 
       function isRepeatIntent(text) {
         return hasAny(text, ["刚才说啥", "你刚才说啥", "再说一遍", "没听清", "你再说一遍"]);
+      }
+
+      function isCorrectionIntent(text) {
+        return hasAny(text, [
+          "你不应该", "不应该", "应该", "是不是", "为什么", "怎么", "能不能", "可不可以",
+          "问一下", "说一下", "看一下", "你听懂没", "你错了", "你怎么这么笨", "你咋这么笨", "你笨",
+          "听不懂", "没听明白"
+        ]);
+      }
+
+      function getCorrectionReply(text) {
+        if (/饭前|饭后|血糖|糖/.test(text) && /应该|不应该|问一下/.test(text)) {
+          return "对，您说得对。记录血糖最好说清楚是饭前还是饭后。您可以说，饭后血糖十二点五。";
+        }
+        if (/笨|听不懂|没听明白|你错了/.test(text)) {
+          return "我还在学呢，您慢慢说。要记录血糖，可以直接说，饭后血糖十二点五。";
+        }
+        return "您说得对。我还在学呢。您可以简单说，饭后血糖十二点五。";
       }
 
       function getAssistantFollowUpReply(text) {
@@ -1786,7 +1805,7 @@
       }
 
       function getSugarReply(text) {
-        var sugar = parseAssistantNumber(text);
+        var sugar = parseSugarNumberFromRecordText(text);
         var period = parseAssistantPeriod(text);
         if (sugar === null) {
           assistantState = {
@@ -1804,6 +1823,14 @@
           bloodSugarValue: sugar,
           rawText: text
         });
+      }
+
+      function parseSugarNumberFromRecordText(text) {
+        var value = String(text || "");
+        var match = value.match(/(?:血糖|糖)(?:是)?(\d+(?:\.\d+)?|[零一二两三四五六七八九十百]+点[零一二两三四五六七八九]+|[零一二两三四五六七八九十百]{2,})/);
+        if (match) return parseAssistantNumber(match[1]);
+        if (/(测|量)?血糖了|记录血糖/.test(value)) return null;
+        return null;
       }
 
       function saveSugarAndBuildReply(record) {
@@ -2016,7 +2043,14 @@
       }
 
       function isSugarRecordIntent(text) {
-        return /(血糖|糖高|糖低|糖.*高|糖.*低|糖[零一二两三四五六七八九十百\d]|饭后糖|空腹糖|早上糖|睡前糖)/.test(text) && !isSugarHistoryIntent(text);
+        if (isCorrectionIntent(text) || isQuestionLikeText(text)) return false;
+        if (/(我)?(测|量)?血糖了|记录血糖/.test(text)) return true;
+        if (/(血糖|糖)(?:是|有点|偏)?(高|低)了?/.test(text)) return true;
+        return /(饭后|饭前|空腹|早上|睡前)?(?:血糖|糖)(?:是)?(?:\d+(?:\.\d+)?|[零一二两三四五六七八九十百]+点[零一二两三四五六七八九]+|[零一二两三四五六七八九十百]{2,})/.test(text) && !isSugarHistoryIntent(text);
+      }
+
+      function isQuestionLikeText(text) {
+        return hasAny(text, ["为什么", "怎么", "能不能", "可不可以", "是不是", "问一下", "说一下", "看一下", "应该", "不应该"]);
       }
 
       function isSugarHistoryIntent(text) {
