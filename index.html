@@ -942,7 +942,7 @@
       <div class="assistant-title">血糖小助手</div>
       <button id="assistantTalkBtn" class="mic-button" type="button">
         <span aria-hidden="true">🎙️</span>
-        按一下说话
+        开始对话
       </button>
       <div class="assistant-short-tip">您可以说：饭后血糖十二点五</div>
       <div class="assistant-dialog">
@@ -952,6 +952,7 @@
         <div id="assistantReplyText" class="assistant-line">点下面按钮，说一句话就行。</div>
       </div>
       <div class="assistant-actions">
+        <button id="assistantEndBtn" class="big-button assistant-button" type="button">结束对话</button>
         <button id="assistantHomeBtn" class="return-button" type="button">返回首页</button>
       </div>
     </section>
@@ -1170,6 +1171,7 @@
       ];
       var session = null;
       var activeRecognition = null;
+      var recognition = null;
       var listenTimer = null;
       var recognitionDone = false;
       var homeScreen = document.getElementById("homeScreen");
@@ -1190,6 +1192,7 @@
       var questionHomeBtn = document.getElementById("questionHomeBtn");
       var completeHomeBtn = document.getElementById("completeHomeBtn");
       var assistantTalkBtn = document.getElementById("assistantTalkBtn");
+      var assistantEndBtn = document.getElementById("assistantEndBtn");
       var assistantHomeBtn = document.getElementById("assistantHomeBtn");
       var assistantUserText = document.getElementById("assistantUserText");
       var assistantReplyText = document.getElementById("assistantReplyText");
@@ -1211,6 +1214,12 @@
       var currentRecipe = null;
       var currentDish = null;
       var assistantState = null;
+      var conversationActive = false;
+      var isListening = false;
+      var isSpeaking = false;
+      var processingResult = false;
+      var assistantRestartTimer = null;
+      var speechSerial = 0;
       var todayBroadcast = {
         solarDate: "",
         weekday: "",
@@ -1336,6 +1345,10 @@
           window.clearTimeout(listenTimer);
           listenTimer = null;
         }
+        if (assistantRestartTimer) {
+          window.clearTimeout(assistantRestartTimer);
+          assistantRestartTimer = null;
+        }
       }
 
       function stopRecognition() {
@@ -1349,21 +1362,22 @@
             } catch (innerError) {}
           }
           activeRecognition = null;
+          recognition = null;
         }
+        isListening = false;
       }
 
       function stopAllAudioWork() {
         clearTimers();
         stopRecognition();
+        isSpeaking = false;
         if ("speechSynthesis" in window) {
           window.speechSynthesis.cancel();
         }
       }
 
       function returnHome() {
-        stopAllAudioWork();
-        session = null;
-        assistantState = null;
+        stopAssistantConversation("对话已结束。", false);
         showScreen("home");
       }
 
@@ -1446,9 +1460,19 @@
         }) || null;
       }
 
-      function speakText(text) {
+      function speakText(text, onEnd) {
         assistantReplyText.textContent = text;
-        if (!("speechSynthesis" in window)) return;
+        speechSerial += 1;
+        var serial = speechSerial;
+        if (!("speechSynthesis" in window)) {
+          isSpeaking = false;
+          if (typeof onEnd === "function") {
+            window.setTimeout(onEnd, 100);
+          } else {
+            continueConversationAfterSpeech();
+          }
+          return;
+        }
         window.speechSynthesis.cancel();
         if (window.speechSynthesis.resume) {
           try {
@@ -1465,29 +1489,73 @@
           return /^zh/i.test(item.lang) && /female|xiaoxiao|huihui|yaoyao|tingting|hanhan|xiaoyi|女|晓|瑶|婷婷|慧/i.test(item.name);
         }) || chooseChineseVoice();
         if (voice) utterance.voice = voice;
+        var speechDone = false;
+        var speechFallback = window.setTimeout(function () {
+          if (speechDone || serial !== speechSerial) return;
+          speechDone = true;
+          isSpeaking = false;
+          if (typeof onEnd === "function") {
+            onEnd();
+          }
+        }, Math.max(1800, String(text || "").length * 420));
+        utterance.onstart = function () {
+          isSpeaking = true;
+        };
+        utterance.onend = function () {
+          if (speechDone || serial !== speechSerial) return;
+          speechDone = true;
+          window.clearTimeout(speechFallback);
+          isSpeaking = false;
+          if (typeof onEnd === "function") {
+            onEnd();
+          } else {
+            continueConversationAfterSpeech();
+          }
+        };
         utterance.onerror = function (event) {
+          if (speechDone || serial !== speechSerial) return;
+          speechDone = true;
+          window.clearTimeout(speechFallback);
+          isSpeaking = false;
           console.log("speechSynthesis error", event && event.error ? event.error : event);
+          if (typeof onEnd === "function") {
+            onEnd();
+          } else {
+            continueConversationAfterSpeech();
+          }
         };
         window.speechSynthesis.speak(utterance);
       }
 
       function openAssistant() {
         stopAllAudioWork();
+        conversationActive = true;
         assistantState = null;
         assistantUserText.textContent = "还没开始说话";
         assistantReplyText.textContent = "我在，您说吧。";
         showScreen("assistant");
-        speakText("我在，您说吧。");
+        assistantTalkBtn.innerHTML = "<span aria-hidden=\"true\">🎙️</span>对话中";
+        speakText("我在，您说吧。", startListening);
       }
 
       function startAssistantListening() {
-        stopAllAudioWork();
-        assistantUserText.textContent = "正在听……";
-        speakText("您说吧。");
-        window.setTimeout(beginAssistantRecognition, 650);
+        if (isListening) return;
+        if (!conversationActive) {
+          openAssistant();
+          return;
+        }
+        speakText("您说吧。", startListening);
       }
 
-      function beginAssistantRecognition() {
+      function continueConversationAfterSpeech() {
+        if (!conversationActive) return;
+        assistantRestartTimer = window.setTimeout(function () {
+          startListening();
+        }, 350);
+      }
+
+      function startListening() {
+        if (!conversationActive || isSpeaking || isListening) return;
         var Recognition = getRecognitionConstructor();
         if (!Recognition) {
           speakText("这个浏览器听不清语音。可以换安卓 Chrome 试试。");
@@ -1495,7 +1563,8 @@
         }
         assistantUserText.textContent = "正在听……";
         assistantReplyText.textContent = "我听着呢。";
-        var recognition = new Recognition();
+        assistantTalkBtn.innerHTML = "<span aria-hidden=\"true\">🎙️</span>正在听您说话……";
+        recognition = new Recognition();
         activeRecognition = recognition;
         recognitionDone = false;
         recognition.lang = "zh-CN";
@@ -1509,31 +1578,284 @@
             recognition.abort();
           } catch (error) {}
           activeRecognition = null;
-          speakText("刚才没听清，您再说一遍。");
+          recognition = null;
+          isListening = false;
+          processingResult = true;
+          speakAssistantReply("刚才没听清，您再说一遍。");
         }, LISTEN_TIMEOUT_MS);
+        recognition.onstart = function () {
+          isListening = true;
+        };
         recognition.onresult = function (event) {
           if (recognitionDone) return;
           recognitionDone = true;
           clearTimers();
+          isListening = false;
+          processingResult = true;
           var text = event.results && event.results[0] && event.results[0][0] ? event.results[0][0].transcript : "";
           activeRecognition = null;
-          handleAssistantInput(dedupeRecognizedText(text));
+          recognition = null;
+          processAssistantTurn(dedupeRecognizedText(text));
         };
         recognition.onerror = function () {
           if (recognitionDone) return;
           recognitionDone = true;
           clearTimers();
           activeRecognition = null;
-          speakText("刚才没听清，您再说一遍。");
+          recognition = null;
+          isListening = false;
+          processingResult = true;
+          speakAssistantReply("刚才没听清，您再说一遍。");
         };
         recognition.onend = function () {
           activeRecognition = null;
+          recognition = null;
+          isListening = false;
+          if (!recognitionDone && conversationActive && !isSpeaking && !processingResult) {
+            assistantRestartTimer = window.setTimeout(startListening, 800);
+          }
         };
         try {
           recognition.start();
         } catch (error) {
           activeRecognition = null;
-          speakText("刚才没听清，您再说一遍。");
+          recognition = null;
+          isListening = false;
+          processingResult = true;
+          speakAssistantReply("刚才没听清，您再说一遍。");
+        }
+      }
+
+      function processAssistantTurn(text) {
+        var raw = String(text || "").trim();
+        assistantUserText.textContent = raw || "没听清";
+        if (!raw) {
+          speakAssistantReply("刚才没听清，您再说一遍。");
+          return;
+        }
+        var result = getAssistantReply(raw);
+        if (result && typeof result.then === "function") {
+          result.then(speakAssistantReply).catch(function () {
+            speakAssistantReply("刚才没听清，您再说一遍。");
+          });
+          return;
+        }
+        speakAssistantReply(result || "刚才没听清，您再说一遍。");
+      }
+
+      function speakAssistantReply(reply) {
+        speakText(reply, function () {
+          processingResult = false;
+          if (conversationActive) {
+            assistantRestartTimer = window.setTimeout(startListening, 500);
+          }
+        });
+      }
+
+      function getAssistantReply(raw) {
+        if (assistantState) return getAssistantFollowUpReply(raw);
+        if (isHelpIntent(raw)) return "您可以直接说：我测血糖了，今天天气咋样，今天几号，昨晚睡得怎么样，今天药吃了吗，或者今日总结。";
+        if (isRecipeIntent(raw)) {
+          conversationActive = false;
+          window.setTimeout(function () {
+            stopAssistantConversation("", false);
+            showTodayRecipe();
+          }, 1200);
+          return "好，我给您打开今日食谱。";
+        }
+        if (isSummaryIntent(raw)) return getTodaySummaryReply();
+        if (isDateIntent(raw)) return getDateReply(raw);
+        if (isWeatherIntent(raw)) return getWeatherReply();
+        if (isSugarHistoryIntent(raw)) return getSugarHistoryReply(raw);
+        if (isSleepIntent(raw)) return getSleepReply(raw);
+        if (isMedicineIntent(raw)) return getMedicineReply(raw);
+        if (isSugarRecordIntent(raw)) return getSugarReply(raw);
+        return "刚才没听清，您再说一遍。可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得怎么样。";
+      }
+
+      function getAssistantFollowUpReply(text) {
+        if (assistantState.type === "bloodSugar" && assistantState.waitingFor === "value") {
+          var sugar = parseAssistantNumber(text);
+          if (sugar === null) return "请说血糖数值。";
+          var sugarRecord = {
+            mealRelation: assistantState.partial.period || "未说明",
+            bloodSugarValue: sugar,
+            rawText: text
+          };
+          assistantState = null;
+          return saveSugarAndBuildReply(sugarRecord);
+        }
+        if (assistantState.type === "medicine" && assistantState.waitingFor === "name") {
+          var name = extractMedicineName(text) || text;
+          saveAssistantRecord("用药", {
+            medicineName: name,
+            medicineStatus: assistantState.partial.status || "未说明",
+            rawText: text
+          });
+          assistantState = null;
+          return "好，记上了。今天吃了" + name + "。";
+        }
+        if (assistantState.type === "sleep" && assistantState.waitingFor === "time") {
+          var sleep = parseSleepInfo(text);
+          saveAssistantRecord("睡眠", sleep);
+          assistantState = null;
+          if (sleep.sleepTime !== "未说明" || sleep.wakeTime !== "未说明") {
+            return "好，记上了。昨晚" + sleep.sleepTime + "睡，早上" + sleep.wakeTime + "醒。";
+          }
+          return "好，先记上。";
+        }
+        assistantState = null;
+        return "刚才没听清，您再说一遍。";
+      }
+
+      function getSugarReply(text) {
+        var sugar = parseAssistantNumber(text);
+        var period = parseAssistantPeriod(text);
+        if (sugar === null) {
+          assistantState = {
+            type: "bloodSugar",
+            waitingFor: "value",
+            partial: {
+              period: period || "",
+              value: ""
+            }
+          };
+          return "请说血糖数值。";
+        }
+        return saveSugarAndBuildReply({
+          mealRelation: period || "未说明",
+          bloodSugarValue: sugar,
+          rawText: text
+        });
+      }
+
+      function saveSugarAndBuildReply(record) {
+        var saved = saveAssistantRecord("血糖", {
+          mealRelation: record.mealRelation || "未说明",
+          bloodSugarValue: String(record.bloodSugarValue),
+          rawText: record.rawText
+        });
+        var periodText = saved.mealRelation === "未说明" ? "" : saved.mealRelation;
+        var reply = "好，记上了。" + periodText + "血糖" + formatSugarForSpeech(saved.bloodSugarValue) + "。";
+        var value = Number(saved.bloodSugarValue);
+        if (value >= 10) reply += "这个数有点高。先别着急，注意少吃甜的。要是连续几次都高，就告诉家里人。";
+        if (value > 0 && value <= 3.9) reply += "这个数有点低。要是心慌、出汗、手抖，赶紧告诉家里人。";
+        return reply;
+      }
+
+      function getDateReply(text) {
+        renderTodayBroadcastDate();
+        if (/阴历|农历/.test(text)) return "今天农历" + todayBroadcast.lunarDate + "。";
+        if (/星期|周几/.test(text)) return "今天是" + todayBroadcast.weekday + "。";
+        if (/播报今天|今天情况/.test(text)) {
+          return loadYushuWeather().then(function () {
+            var reply = "今天是" + todayBroadcast.solarDate + "，" + todayBroadcast.weekday + "。农历" + todayBroadcast.lunarDate + "。";
+            if (todayBroadcast.weatherReady) return reply + "榆树今天" + todayBroadcast.weather + "，" + todayBroadcast.temperature + "度。今天也照顾好自己。";
+            return reply + "榆树天气暂时没有获取到。今天也照顾好自己。";
+          });
+        }
+        return "今天是" + formatShortSolarDate(new Date()) + "，" + todayBroadcast.weekday + "。";
+      }
+
+      function getWeatherReply() {
+        return loadYushuWeather().then(function () {
+          if (todayBroadcast.weatherReady) return "榆树今天" + todayBroadcast.weather + "，" + todayBroadcast.temperature + "度。出门看着点儿天气。";
+          return "榆树天气暂时没取到，过会儿再试试。";
+        });
+      }
+
+      function getSugarHistoryReply(text) {
+        var records = getRecordsForAssistant("血糖");
+        var rangeLabel = "今天";
+        if (/昨天/.test(text)) {
+          rangeLabel = "昨天";
+          records = records.filter(function (record) { return record.recordDate === formatDate(addDays(new Date(), -1)); });
+        } else if (!/最近/.test(text)) {
+          records = records.filter(function (record) { return record.recordDate === formatDate(new Date()); });
+        } else {
+          rangeLabel = "最近";
+        }
+        if (/空腹/.test(text)) records = records.filter(function (record) { return record.mealRelation === "空腹"; });
+        if (/饭后/.test(text)) records = records.filter(function (record) { return record.mealRelation === "饭后"; });
+        if (!records.length) return rangeLabel === "今天" ? "今天还没记血糖。需要现在记一下吗？" : "还没找到血糖记录。您可以先说，我测血糖了。";
+        var summary = records.slice(0, 4).map(function (record) {
+          return (record.mealRelation && record.mealRelation !== "未说明" ? record.mealRelation : "") + formatSugarForSpeech(record.bloodSugarValue);
+        }).join("，");
+        return rangeLabel + "记了" + countToChinese(records.length) + "回血糖。" + summary + "。";
+      }
+
+      function getSleepReply(text) {
+        var info = parseSleepInfo(text);
+        var saved = saveAssistantRecord("睡眠", info);
+        if (/睡得不好|没睡好|醒了好几次/.test(text) && saved.sleepTime === "未说明" && saved.wakeTime === "未说明") {
+          assistantState = { type: "sleep", waitingFor: "time", partial: saved };
+          return "好，先记上。昨晚睡得不好。您还记得几点睡、几点醒吗？";
+        }
+        if (saved.dayRest !== "未说明" && saved.dayRestDuration !== "未说明") return "好，记上了。白天休息" + saved.dayRestDuration + "。";
+        if (saved.dayRest !== "未说明") return "好，白天休息也记上了。";
+        if (saved.medicineStatus !== "未说明") {
+          return "好，记上了。昨天用药情况是" + saved.medicineStatus + "。" + (saved.medicineStatus !== "正常" ? "这个事儿最好让家里人知道。" : "");
+        }
+        if (saved.sleepTime !== "未说明" || saved.wakeTime !== "未说明") return "好，记上了。昨晚" + saved.sleepTime + "睡，早上" + saved.wakeTime + "醒。";
+        assistantState = { type: "sleep", waitingFor: "time", partial: saved };
+        return "好，先记上。昨晚睡得不好。您还记得几点睡、几点醒吗？";
+      }
+
+      function getMedicineReply(text) {
+        var status = parseMedicineStatus(text);
+        var name = extractMedicineName(text);
+        if (status === "正常" && /医生说/.test(text)) {
+          saveAssistantRecord("用药", { medicineName: name || "未说明", medicineStatus: "正常", rawText: text });
+          return "好，记上了。药按医生说的吃了。";
+        }
+        if (status !== "未说明" && status !== "正常") {
+          saveAssistantRecord("用药", { medicineName: name || "未说明", medicineStatus: status, rawText: text });
+          return "好，我记上。今天药" + status + "了。这个事儿最好让家里人知道。";
+        }
+        if (!name) {
+          assistantState = { type: "medicine", waitingFor: "name", partial: { status: status } };
+          return "请问吃的是什么药？";
+        }
+        saveAssistantRecord("用药", { medicineName: name, medicineStatus: status, rawText: text });
+        return "好，记上了。今天吃了" + name + "。";
+      }
+
+      function getTodaySummaryReply() {
+        var today = formatDate(new Date());
+        var records = getLocalRecords().filter(function (record) {
+          return record.recordDate === today || String(record.createdAt || "").slice(0, 10) === today;
+        });
+        if (!records.length) return "今天还没记东西。可以先说，我测血糖了，或者昨晚睡得怎么样。";
+        var sugar = getRecordsForAssistant("血糖").filter(function (record) { return record.recordDate === today; });
+        var sleep = getRecordsForAssistant("睡眠").filter(function (record) { return record.recordDate === today; })[0];
+        var medicine = getRecordsForAssistant("用药").filter(function (record) { return record.recordDate === today; })[0];
+        var parts = [];
+        if (sugar.length) {
+          parts.push("今天记了" + countToChinese(sugar.length) + "回血糖。" + sugar.slice(0, 3).map(function (record) {
+            return (record.mealRelation !== "未说明" ? record.mealRelation : "") + formatSugarForSpeech(record.bloodSugarValue);
+          }).join("，") + "。");
+        }
+        if (sleep) parts.push("睡眠也记了，昨晚" + sleep.sleepTime + "睡，早上" + sleep.wakeTime + "醒。");
+        if (medicine) parts.push(medicine.medicineStatus === "正常" ? "药是按医生说的吃的。" : "用药情况是" + medicine.medicineStatus + "。");
+        return parts.length ? parts.join("") : "今天还没记东西。可以先说，我测血糖了，或者昨晚睡得怎么样。";
+      }
+
+      function stopAssistantConversation(message, showMessage) {
+        conversationActive = false;
+        speechSerial += 1;
+        assistantState = null;
+        session = null;
+        clearTimers();
+        stopRecognition();
+        isListening = false;
+        isSpeaking = false;
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+        assistantTalkBtn.innerHTML = "<span aria-hidden=\"true\">🎙️</span>开始对话";
+        if (showMessage) {
+          assistantReplyText.textContent = message || "对话已结束。";
+          assistantUserText.textContent = "对话已结束";
         }
       }
 
@@ -1550,8 +1872,11 @@
         }
         if (isHelpIntent(raw)) return speakText("您可以直接说：我测血糖了，今天天气咋样，今天几号，昨晚睡得怎么样，今天药吃了吗，或者今日总结。");
         if (isRecipeIntent(raw)) {
-          speakText("好，我给您打开今日食谱。");
-          window.setTimeout(showTodayRecipe, 900);
+          conversationActive = false;
+          speakText("好，我给您打开今日食谱。", function () {
+            stopAssistantConversation("", false);
+            showTodayRecipe();
+          });
           return;
         }
         if (isSummaryIntent(raw)) return speakTodaySummary();
@@ -1758,7 +2083,15 @@
           return;
         }
         if (/播报今天|今天情况/.test(text)) {
-          speakTodayBroadcast();
+          loadYushuWeather().then(function () {
+            var reply = "今天是" + todayBroadcast.solarDate + "，" + todayBroadcast.weekday + "。农历" + todayBroadcast.lunarDate + "。";
+            if (todayBroadcast.weatherReady) {
+              reply += "榆树今天" + todayBroadcast.weather + "，" + todayBroadcast.temperature + "度。今天也照顾好自己。";
+            } else {
+              reply += "榆树天气暂时没有获取到。今天也照顾好自己。";
+            }
+            speakText(reply);
+          });
           return;
         }
         speakText("今天是" + formatShortSolarDate(new Date()) + "，" + todayBroadcast.weekday + "。");
@@ -2546,6 +2879,9 @@
       recipeBtn.addEventListener("click", showTodayRecipe);
       broadcastBtn.addEventListener("click", speakTodayBroadcast);
       assistantTalkBtn.addEventListener("click", startAssistantListening);
+      assistantEndBtn.addEventListener("click", function () {
+        stopAssistantConversation("对话已结束。", true);
+      });
       assistantHomeBtn.addEventListener("click", returnHome);
       questionHomeBtn.addEventListener("click", returnHome);
       completeHomeBtn.addEventListener("click", returnHome);
