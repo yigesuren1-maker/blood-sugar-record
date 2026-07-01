@@ -2834,8 +2834,11 @@
           createdAtMs: now.getTime()
         }, data || {});
         saveLocalRecord(record);
+        console.log("准备上传语音助手记录", record);
         try {
-          uploadRecord(record);
+          uploadRecord(record).catch(function (error) {
+            console.warn("语音助手记录上传失败", error);
+          });
         } catch (error) {
           console.warn("assistant record upload failed", error);
         }
@@ -3170,8 +3173,9 @@
 
       function uploadRecord(record) {
         var payload = cleanPayload(toSupabaseRecord(record));
+        console.log("uploadRecord 被调用", record);
         console.log("supabase add health_records payload", payload);
-        fetch(CONFIG.supabaseUrl + "/rest/v1/health_records", {
+        return fetch(CONFIG.supabaseUrl + "/rest/v1/health_records", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -3183,6 +3187,7 @@
         }).then(function (response) {
           if (!response.ok) {
             return response.text().then(function (text) {
+              console.warn("上传失败状态", response.status, text);
               throw new Error("HTTP " + response.status + " " + response.statusText + " " + text);
             });
           }
@@ -3203,12 +3208,16 @@
 
       function toSupabaseRecord(record) {
         var sugarValue = parseNumericValue(record.bloodSugarValue);
+        var isAssistantRecord = Boolean(record.recordType);
+        var safeValue = sugarValue !== null ? sugarValue : (isAssistantRecord ? 0 : null);
+        var safePeriod = record.mealRelation || record.period || record.recordType || "随机";
         return {
           family_key: CONFIG.family_key,
-          value: sugarValue,
-          period: record.mealRelation || "随机",
+          value: safeValue,
+          period: safePeriod,
           note: JSON.stringify({
             elderId: record.elderId,
+            category: record.recordType,
             recordDate: record.recordDate,
             recordTime: record.recordTime,
             medicineTime: record.medicineTime,
