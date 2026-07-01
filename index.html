@@ -2058,6 +2058,7 @@
             medication: "",
             note: "",
             rawText: "",
+            timeRetryCount: 0,
             answersRaw: []
           }, partial || {})
         };
@@ -2081,10 +2082,17 @@
         }
 
         if (state.step === "time") {
-          var info = parseSleepInfo(text);
-          if (info.sleepTime !== "未说明") partial.sleepTime = info.sleepTime;
-          if (info.wakeTime !== "未说明") partial.wakeTime = info.wakeTime;
-          if (!partial.sleepTime || !partial.wakeTime) return "大概几点睡的，几点醒的？";
+          var times = parseSleepTime(text);
+          if (times.sleepTime) partial.sleepTime = times.sleepTime;
+          if (times.wakeTime) partial.wakeTime = times.wakeTime;
+          if (partial.sleepTime && partial.wakeTime) {
+            state.step = "dayRest";
+            return "白天睡没睡？睡了多久？";
+          }
+          if (partial.sleepTime) return "几点醒的？";
+          if (partial.wakeTime) return "几点睡的？";
+          partial.timeRetryCount = (partial.timeRetryCount || 0) + 1;
+          if (partial.timeRetryCount === 1) return "您可以这样说，十一点睡，五点醒。";
           state.step = "dayRest";
           return "白天睡没睡？睡了多久？";
         }
@@ -2589,6 +2597,60 @@
         if (/挺好|很好|睡得好|还行|可以|不错/.test(value)) return "还行";
         if (/不好|没睡好|没怎么睡|折腾|醒了好几回|一晚上没怎么睡|半夜醒/.test(value)) return "不好";
         return "";
+      }
+
+      function parseSleepTime(text) {
+        var value = normalizeSleepTimeText(text);
+        var result = {
+          sleepTime: "",
+          wakeTime: ""
+        };
+        var sleepMatch = value.match(/((?:半夜|昨晚|昨天晚上|晚上|早上|早晨|今天早上)?(?:10|11|12|[1-9])点(?:半|多)?)(?:睡的|睡着|睡|躺下|上床)/);
+        var wakeMatch = value.match(/((?:半夜|昨晚|昨天晚上|晚上|早上|早晨|今天早上)?(?:10|11|12|[1-9])点(?:半|多)?)(?:醒了|醒|起来|起床|起)/);
+        if (sleepMatch) result.sleepTime = formatSleepTimeText(sleepMatch[1]);
+        if (wakeMatch) result.wakeTime = formatSleepTimeText(wakeMatch[1]);
+
+        var allTimes = [];
+        var timeRe = /(?:半夜|昨晚|昨天晚上|晚上|早上|早晨|今天早上)?(?:10|11|12|[1-9])点(?:半|多)?/g;
+        var match;
+        while ((match = timeRe.exec(value)) !== null) {
+          allTimes.push(formatSleepTimeText(match[0]));
+        }
+        if (!result.sleepTime && allTimes[0]) result.sleepTime = allTimes[0];
+        if (!result.wakeTime && allTimes[1]) result.wakeTime = allTimes[1];
+        if (!result.wakeTime && !result.sleepTime && allTimes.length === 1) {
+          if (/醒|起来|起床|起/.test(value)) result.wakeTime = allTimes[0];
+          if (/睡|躺下|上床/.test(value)) result.sleepTime = allTimes[0];
+        }
+        return result;
+      }
+
+      function normalizeSleepTimeText(text) {
+        return String(text || "")
+          .toLowerCase()
+          .replace(/[\s，。！？,.!?、；;：“”"']/g, "")
+          .replace(/十一/g, "11")
+          .replace(/十二/g, "12")
+          .replace(/十/g, "10")
+          .replace(/两/g, "2")
+          .replace(/一/g, "1")
+          .replace(/二/g, "2")
+          .replace(/三/g, "3")
+          .replace(/四/g, "4")
+          .replace(/五/g, "5")
+          .replace(/六/g, "6")
+          .replace(/七/g, "7")
+          .replace(/八/g, "8")
+          .replace(/九/g, "9");
+      }
+
+      function formatSleepTimeText(text) {
+        return String(text || "")
+          .replace(/^昨天晚上/, "晚上")
+          .replace(/^今天早上/, "早上")
+          .replace(/(10|11|12|[1-9])点/g, function (_, number) {
+            return numberToChinese(Number(number)) + "点";
+          });
       }
 
       function buildDayRestText(info) {
