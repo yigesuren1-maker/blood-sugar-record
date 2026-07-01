@@ -1243,6 +1243,7 @@
       var isListening = false;
       var isSpeaking = false;
       var processingResult = false;
+      var fallbackCount = 0;
       var assistantRestartTimer = null;
       var speechSerial = 0;
       var todayBroadcast = {
@@ -1685,24 +1686,27 @@
         var text = normalizeText(raw);
         if (assistantState) return getAssistantFollowUpReply(raw);
         if (isEndIntent(text)) {
+          fallbackCount = 0;
           conversationActive = false;
           assistantState = null;
           assistantTalkBtn.innerHTML = "<span aria-hidden=\"true\">🎙️</span>开始对话";
           assistantStatusText.textContent = "对话已结束。";
           return "好，对话结束。";
         }
-        if (isRepeatIntent(text)) return lastAssistantReply || "您可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得咋样。";
-        if (isCorrectionIntent(text)) return getCorrectionReply(text);
-        if (isIdentityIntent(text)) return "我是血糖小助手，帮您记血糖、问天气、看日期、记睡眠和用药。";
-        if (isPresenceIntent(text)) return "我在呢，您慢慢说。";
-        if (isHelpIntent(text)) return "您就像平时说话一样。可以说，饭后血糖十二点五，今天天气咋样，或者昨晚睡得咋样。";
-        if (isSugarRecordIntent(text)) return getSugarReply(text);
-        if (isWeatherIntent(text)) return getWeatherReply();
-        if (isDateIntent(text)) return getDateReply(text);
-        if (isSleepIntent(text)) return getSleepReply(text);
-        if (isMedicineIntent(text)) return getMedicineReply(text);
-        if (isSummaryIntent(text)) return getTodaySummaryReply();
+        if (isRepeatIntent(text)) return assistantMatched(lastAssistantReply || "您可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得咋样。");
+        if (isInterruptionIntent(text)) return getInterruptionReply(text);
+        if (isCorrectionIntent(text)) return assistantMatched(getCorrectionReply(text));
+        if (isIdentityIntent(text)) return assistantMatched("我是血糖小助手，帮您记血糖、问天气、看日期、记睡眠和用药。");
+        if (isPresenceIntent(text)) return assistantMatched("我在呢，您慢慢说。");
+        if (isHelpIntent(text)) return assistantMatched("您就像平时说话一样。可以说，饭后血糖十二点五，今天天气咋样，或者昨晚睡得咋样。");
+        if (isSugarRecordIntent(text)) return assistantMatched(getSugarReply(text));
+        if (isWeatherIntent(text)) return assistantMatched(getWeatherReply());
+        if (isDateIntent(text)) return assistantMatched(getDateReply(text));
+        if (isSleepIntent(text)) return assistantMatched(getSleepReply(text));
+        if (isMedicineIntent(text)) return assistantMatched(getMedicineReply(text));
+        if (isSummaryIntent(text)) return assistantMatched(getTodaySummaryReply());
         if (isRecipeIntent(text)) {
+          fallbackCount = 0;
           conversationActive = false;
           window.setTimeout(function () {
             stopAssistantConversation("", false);
@@ -1710,8 +1714,20 @@
           }, 1200);
           return "好，我给您打开今日食谱。";
         }
-        if (isSugarHistoryIntent(text)) return getSugarHistoryReply(text);
-        return "我可能没听明白。您可以换个简单说法，比如，测血糖了，今天天气咋样，或者今天几号。";
+        if (isSugarHistoryIntent(text)) return assistantMatched(getSugarHistoryReply(text));
+        return getFallbackReply();
+      }
+
+      function assistantMatched(reply) {
+        fallbackCount = 0;
+        return reply;
+      }
+
+      function getFallbackReply() {
+        fallbackCount += 1;
+        if (fallbackCount === 1) return "我可能没听明白。您可以换个简单说法。";
+        if (fallbackCount === 2) return "我还是没听准。您可以直接说，记血糖，问天气，或者记睡眠。";
+        return "要不您先说“测血糖了”，我一步一步问您。";
       }
 
       function normalizeText(text) {
@@ -1759,6 +1775,28 @@
         ]);
       }
 
+      function isInterruptionIntent(text) {
+        return hasAny(text, [
+          "你别老说", "别重复", "别说这个", "不是这个", "不是这个意思", "你听我说", "你咋不听我说",
+          "你没听懂", "你理解错了", "你说的不对", "你别打断", "你先听我说", "我不是问这个",
+          "你怎么老说这个", "你咋一直说这个"
+        ]);
+      }
+
+      function getInterruptionReply(text) {
+        fallbackCount = Math.max(0, fallbackCount - 1);
+        if (/别重复|老说|一直说/.test(text)) {
+          return "好，我不重复了。您直接说想做什么，我听着呢。";
+        }
+        if (/不是这个|理解错|说的不对/.test(text)) {
+          return "明白，刚才理解错了。您再说一遍，我重新听。";
+        }
+        if (/听我说|先听/.test(text)) {
+          return "我听着呢，您慢慢说。";
+        }
+        return "我听到了，刚才没理解准。您换个简单说法，我再试试。";
+      }
+
       function getCorrectionReply(text) {
         if (/饭前|饭后|血糖|糖/.test(text) && /应该|不应该|问一下/.test(text)) {
           return "对，您说得对。记录血糖最好说清楚是饭前还是饭后。您可以说，饭后血糖十二点五。";
@@ -1770,6 +1808,7 @@
       }
 
       function getAssistantFollowUpReply(text) {
+        fallbackCount = 0;
         if (assistantState.type === "bloodSugar" && assistantState.waitingFor === "value") {
           var sugar = parseAssistantNumber(text);
           if (sugar === null) return "请说血糖数值。";
