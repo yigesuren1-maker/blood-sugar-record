@@ -1684,7 +1684,7 @@
 
       function getAssistantReply(raw) {
         var text = normalizeText(raw);
-        if (assistantState) return getAssistantFollowUpReply(raw);
+        if (assistantState) return handleAssistantState(raw);
         if (isEndIntent(text)) {
           fallbackCount = 0;
           conversationActive = false;
@@ -1699,6 +1699,8 @@
         if (isIdentityIntent(text)) return assistantMatched("我是血糖小助手，帮您记血糖、问天气、看日期、记睡眠和用药。");
         if (isPresenceIntent(text)) return assistantMatched("我在呢，您慢慢说。");
         if (isHelpIntent(text)) return assistantMatched("您就像平时说话一样。可以说，饭后血糖十二点五，今天天气咋样，或者昨晚睡得咋样。");
+        if (isBloodSugarStartIntent(text)) return assistantMatched(startBloodSugarFlow(text));
+        if (isSleepStartIntent(text)) return assistantMatched(startSleepFlow(text));
         if (isSugarRecordIntent(text)) return assistantMatched(getSugarReply(text));
         if (isWeatherIntent(text)) return assistantMatched(getWeatherReply());
         if (isDateIntent(text)) return assistantMatched(getDateReply(text));
@@ -1807,6 +1809,10 @@
         return "您说得对。我还在学呢。您可以简单说，饭后血糖十二点五。";
       }
 
+      function handleAssistantState(text) {
+        return getAssistantFollowUpReply(text);
+      }
+
       function getAssistantFollowUpReply(text) {
         fallbackCount = 0;
         if (assistantState.type === "bloodSugar") {
@@ -1856,6 +1862,17 @@
           rawText: text
         });
         return "好，" + period + "血糖" + formatSugarForSpeech(sugar) + "。今天按医生说的吃药或者打针了吗？";
+      }
+
+      function isBloodSugarStartIntent(text) {
+        var value = String(text || "");
+        if (parseSugarNumberFromRecordText(value) !== null) return false;
+        return /^(记录血糖|我血糖了|我测血糖了|我量血糖了|我量糖了|我测糖了|测糖了|量糖了|血糖了)$/.test(value);
+      }
+
+      function startBloodSugarFlow(text) {
+        assistantState = createBloodSugarState("period", { rawText: text });
+        return "好，咱们记血糖。是空腹、饭前、饭后，还是睡前？";
       }
 
       function createBloodSugarState(step, partial) {
@@ -1997,8 +2014,7 @@
 
       function getSleepReply(text) {
         if (isSleepStartIntent(text)) {
-          assistantState = createSleepState("quality", { rawText: text });
-          return "好，咱们记睡眠。昨天晚上睡得怎么样？";
+          return startSleepFlow(text);
         }
         var info = parseSleepInfo(text);
         var partial = {
@@ -2045,6 +2061,11 @@
             answersRaw: []
           }, partial || {})
         };
+      }
+
+      function startSleepFlow(text) {
+        assistantState = createSleepState("quality", { rawText: text });
+        return "好，咱们记睡眠。昨天晚上睡得怎么样？";
       }
 
       function handleSleepStep(text) {
@@ -2174,31 +2195,26 @@
       function handleAssistantInput(text) {
         var raw = String(text || "").trim();
         assistantUserText.textContent = raw || "没听清";
+        if (assistantState) {
+          if (!raw) {
+            speakText("刚才没听清，您再说一遍。");
+            return;
+          }
+          speakText(handleAssistantState(raw));
+          return;
+        }
         if (!raw) {
-          speakText("刚才没听清，您再说一遍。可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得怎么样。");
+          speakText("刚才没听清，您再说一遍。");
           return;
         }
-        if (assistantState && assistantState.waiting) {
-          handleAssistantFollowUp(raw);
-          return;
-        }
-        if (isHelpIntent(raw)) return speakText("您可以直接说：我测血糖了，今天天气咋样，今天几号，昨晚睡得怎么样，今天药吃了吗，或者今日总结。");
-        if (isRecipeIntent(raw)) {
-          conversationActive = false;
-          speakText("好，我给您打开今日食谱。", function () {
-            stopAssistantConversation("", false);
-            showTodayRecipe();
+        var reply = getAssistantReply(raw);
+        if (reply && typeof reply.then === "function") {
+          reply.then(speakText).catch(function () {
+            speakText("刚才没听清，您再说一遍。");
           });
           return;
         }
-        if (isSummaryIntent(raw)) return speakTodaySummary();
-        if (isDateIntent(raw)) return answerDateIntent(raw);
-        if (isWeatherIntent(raw)) return answerWeather();
-        if (isSugarHistoryIntent(raw)) return answerSugarHistory(raw);
-        if (isSleepIntent(raw)) return handleSleepIntent(raw);
-        if (isMedicineIntent(raw)) return handleMedicineIntent(raw);
-        if (isSugarRecordIntent(raw)) return handleSugarIntent(raw);
-        speakText("刚才没听清，您再说一遍。可以说，测血糖了，今天天气咋样，今天几号，或者昨晚睡得怎么样。");
+        speakText(reply || "刚才没听清，您再说一遍。");
       }
 
       function handleAssistantFollowUp(text) {
